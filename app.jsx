@@ -90,6 +90,7 @@ function MainApp() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const tileLayerRef = useRef(null);
+  const heatLayerRef = useRef(null);
   const markersRef = useRef([]);
   const selectedMarkerRef = useRef(null);
   const stompClient = useRef(null);
@@ -104,26 +105,7 @@ function MainApp() {
         attribution: '&copy; OSM'
       }).addTo(mapInstance.current);
 
-      // SPRINT 7: Círculos de calor mockeados para Zonas de Alto Riesgo
-      // SPRINT 7: Heatmap Avanzado para Robos (Difuminado real)
-      if (window.L.heatLayer) {
-        const robberyPoints = [
-          [1.215, -77.285, 1.0], // Alta intensidad y foco central
-          [1.214, -77.283, 0.8],
-          [1.216, -77.286, 0.7],
-          [1.213, -77.288, 0.4], // Baja intensidad en bordes
-          [1.217, -77.281, 0.3]
-        ];
-        // Radio amplio y mucho blur para que se vea difuminado real de zona roja
-        L.heatLayer(robberyPoints, {
-          radius: 35, 
-          blur: 25, 
-          maxZoom: 15,
-          gradient: { 0.4: 'yellow', 0.65: 'orange', 1.0: 'red' }
-        }).addTo(mapInstance.current);
-      }
-
-      // SPRINT 7: Línea de Tráfico renderizada con Leaflet Routing Machine (Trazo topológico calcado estricto al pavimento)
+      // SPRINT 7: Línea de Tráfico renderizada con Leaflet Routing Machine (Restaurada por requerimiento)
       if (window.L.Routing) {
         L.Routing.control({
           waypoints: [
@@ -218,6 +200,14 @@ function MainApp() {
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
+    // Clear previous heat layer
+    if (heatLayerRef.current && mapInstance.current) {
+        heatLayerRef.current.remove();
+        heatLayerRef.current = null;
+    }
+
+    const heatPoints = [];
+
     data.forEach(r => {
       // Temporary mocked time and street bounds if unsupplied by DB
       const timeStr = r.reportDate ? new Date(r.reportDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "14:30";
@@ -227,12 +217,30 @@ function MainApp() {
       const tScore = r.trustScore || Math.floor(Math.random() * 40) + 60; // Mock fallback if backend unavail
       const isVerified = tScore > 85;
 
-      const m = L.marker([r.latitude, r.longitude], {
-        icon: L.icon({
+      // SPRINT 11: Dynamic Heat points calculation for incidents involving danger
+      if (r.incidentType === 'ROBBERY' || r.incidentType === 'ACCIDENT') {
+          heatPoints.push([r.latitude, r.longitude, 0.8]); // Default high intensity per case
+      }
+
+      // SPRINT 11: Traffic marker instead of strict routing line
+      let customIcon;
+      if (r.incidentType === 'TRAFFIC') {
+        customIcon = L.divIcon({
+            className: 'traffic-div-icon',
+            html: '<div style="background:#ea580c; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 12px rgba(234,88,12,0.6); font-size:16px;">🚧</div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+      } else {
+        customIcon = L.icon({
           iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
           shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
           iconAnchor: [12, 41]
-        })
+        });
+      }
+
+      const m = L.marker([r.latitude, r.longitude], {
+        icon: customIcon
       }).bindPopup(`
         <div style="font-family: inherit; min-width: 160px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -258,6 +266,16 @@ function MainApp() {
         markersRef.current.push(m);
       }
     });
+
+    // Draw Heatmap
+    if (window.L.heatLayer && heatPoints.length > 0 && mapInstance.current) {
+      heatLayerRef.current = L.heatLayer(heatPoints, {
+        radius: 35, 
+        blur: 25, 
+        maxZoom: 15,
+        gradient: { 0.4: 'yellow', 0.65: 'orange', 1.0: 'red' }
+      }).addTo(mapInstance.current);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -268,28 +286,40 @@ function MainApp() {
     }
 
     const dto = {
+      id: Date.now(), // Fallback offline ID
       description: desc,
       incidentType: type,
-      address: `Lat: ${selectedLocation.lat.toFixed(4)}, Lng: ${selectedLocation.lng.toFixed(4)}`, // Mock
+      address: `Lat: ${selectedLocation.lat.toFixed(4)}, Lng: ${selectedLocation.lng.toFixed(4)}`,
       source: 'CITIZEN_TEXT',
       latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng
+      longitude: selectedLocation.lng,
+      reportDate: new Date().toISOString(),
+      trustScore: 80
     };
+
+    // 🌟 OPTIMISTIC UI UPDATE: Dibuja el marcador y calor inmediatamente en FrontEnd 
+    // sin importar si el Backend de Render está congelado.
+    setReports(prev => {
+      const updated = [dto, ...prev];
+      renderMarkers(updated);
+      return updated;
+    });
+
+    setDesc('');
+    setSelectedLocation(null);
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.remove();
+      selectedMarkerRef.current = null;
+    }
 
     try {
       await axios.post(`${BACKEND_URL}/api/v1/reports`, dto, {
         headers: { 'Content-Type': 'application/json' }
       });
-      setDesc('');
-      setSelectedLocation(null);
-      if (selectedMarkerRef.current) {
-        selectedMarkerRef.current.remove();
-        selectedMarkerRef.current = null;
-      }
-      showToast("🚀 Reporte enviado con éxito", "success");
+      showToast("🚀 Sincronizado en la Nube oficial", "success");
     } catch (err) {
-      console.error("Error submitting report", err);
-      showToast(`❌ Error de red local: ${err.message}`, "error");
+      console.warn("Backend sleeping (Cold Start). Showing offline mocked report.", err);
+      showToast(`⚠️ Modo Local: El servidor está suspendido, pero tu reporte se ve en pantalla.`, "error");
     }
   };
 
@@ -507,6 +537,29 @@ function Register() {
   );
 }
 
+function UserMenu() {
+  const [open, setOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('safecity_token');
+    window.location.hash = '#/login';
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div className="user-avatar" title="Mi Perfil" onClick={() => setOpen(!open)}>👤</div>
+      {open && (
+        <div className="notification-dropdown" style={{ width: '220px' }}>
+          <div className="notif-header">Mi Cuenta</div>
+          <div className="notif-item" style={{ cursor: 'pointer' }} onClick={() => alert("⚙️ Tu Panel de Ciudadano abrirá próximamente.")}>⚙️ Panel de Ciudadano</div>
+          <div className="notif-item" style={{ cursor: 'pointer' }} onClick={() => alert("⭐ Tu Trust Score actual es: 85%")}>⭐ Mi Trust Score</div>
+          <div className="notif-item" style={{ cursor: 'pointer', color: 'var(--error)', borderTop: '1px solid var(--border)', paddingTop: '0.5rem', marginTop: '0.25rem' }} onClick={handleLogout}>🚪 Cerrar Sesión</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AppLayout() {
   const [darkMode, setDarkMode] = useState(false); // Siempre inicia en Modo Claro por defecto
 
@@ -532,7 +585,7 @@ function AppLayout() {
         <div className="nav-actions">
           <button type="button" className="icon-btn mode-btn" onClick={() => setDarkMode(!darkMode)} title="Modo Claro/Oscuro">🌓</button>
           <NotificationBell />
-          <div className="user-avatar" title="Mi Perfil" onClick={() => alert("⚙️ Panel de Ciudadano y Trust Score en construcción para el Sprint 8.")}>👤</div>
+          <UserMenu />
         </div>
       </nav>
       
