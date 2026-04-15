@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { reportsAPI } from '../services/api';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
-import {
-  MapPin, Send, Crosshair, Plus, X, Lock
-} from 'lucide-react';
+import { MapPin, Send, Crosshair, Plus, X, Lock } from 'lucide-react';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -36,13 +33,16 @@ function createColoredIcon(color) {
   });
 }
 
-// Tile URLs por tema
 const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
 export default function MapView({
   reports, setReports, wsConnected, setWsConnected,
-  section, isAuthenticated, reportMode, setReportMode, theme
+  section, isAuthenticated, reportMode, setReportMode,
+  selectedLocation, setSelectedLocation,
+  reportDesc, setReportDesc, reportType, setReportType,
+  submitting, handleSubmitReport, cancelReportMode,
+  theme
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -50,13 +50,36 @@ export default function MapView({
   const markersRef = useRef([]);
   const selectedMarkerRef = useRef(null);
   const reportModeRef = useRef(reportMode);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [desc, setDesc] = useState('');
-  const [type, setType] = useState('ROBBERY');
-  const [submitting, setSubmitting] = useState(false);
+  const setSelectedLocationRef = useRef(setSelectedLocation);
 
-  // Sincronizar ref con prop para evitar stale closure en el click handler
+  // Sincronizar refs
   useEffect(() => { reportModeRef.current = reportMode; }, [reportMode]);
+  useEffect(() => { setSelectedLocationRef.current = setSelectedLocation; }, [setSelectedLocation]);
+
+  // Manejar el marker de ubicación seleccionada
+  useEffect(() => {
+    if (section !== 'main' || !mapInstance.current) return;
+
+    if (selectedLocation) {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.setLatLng([selectedLocation.lat, selectedLocation.lng]);
+      } else {
+        selectedMarkerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], {
+          icon: L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="width:16px;height:16px;background:#6366f1;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(99,102,241,0.6);"></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          }),
+        }).addTo(mapInstance.current).bindPopup('Ubicación seleccionada').openPopup();
+      }
+    } else {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.remove();
+        selectedMarkerRef.current = null;
+      }
+    }
+  }, [selectedLocation, section]);
 
   // Inicializar mapa
   useEffect(() => {
@@ -70,23 +93,10 @@ export default function MapView({
       maxZoom: 19,
     }).addTo(mapInstance.current);
 
-    // Click en mapa solo funciona en report mode (usa ref para evitar stale closure)
     mapInstance.current.on('click', (e) => {
       if (!reportModeRef.current) return;
       const { lat, lng } = e.latlng;
-      setSelectedLocation({ lat, lng });
-      if (selectedMarkerRef.current) {
-        selectedMarkerRef.current.setLatLng([lat, lng]);
-      } else {
-        selectedMarkerRef.current = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'custom-marker',
-            html: `<div style="width:16px;height:16px;background:#6366f1;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(99,102,241,0.6);"></div>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-          }),
-        }).addTo(mapInstance.current).bindPopup('Ubicación seleccionada').openPopup();
-      }
+      setSelectedLocationRef.current({ lat, lng });
     });
 
     return () => {
@@ -98,11 +108,10 @@ export default function MapView({
     };
   }, [section]);
 
-  // Cambiar tiles cuando cambia el tema
+  // Cambiar tiles por tema
   useEffect(() => {
     if (section !== 'main' || !mapInstance.current || !tileLayerRef.current) return;
-    const tileUrl = theme === 'light' ? TILE_LIGHT : TILE_DARK;
-    tileLayerRef.current.setUrl(tileUrl);
+    tileLayerRef.current.setUrl(theme === 'light' ? TILE_LIGHT : TILE_DARK);
   }, [theme, section]);
 
   // Renderizar markers
@@ -153,41 +162,10 @@ export default function MapView({
     };
   }, [section, setReports, setWsConnected]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedLocation) return;
-    setSubmitting(true);
-    try {
-      await reportsAPI.create({
-        description: desc,
-        incidentType: type,
-        address: `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`,
-        source: 'CITIZEN_TEXT',
-        latitude: selectedLocation.lat,
-        longitude: selectedLocation.lng,
-      });
-      setDesc('');
-      setSelectedLocation(null);
-      setReportMode(false);
-      if (selectedMarkerRef.current) { selectedMarkerRef.current.remove(); selectedMarkerRef.current = null; }
-    } catch (err) {
-      console.error('Error creating report:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const cancelReportMode = () => {
-    setReportMode(false);
-    setSelectedLocation(null);
-    if (selectedMarkerRef.current) { selectedMarkerRef.current.remove(); selectedMarkerRef.current = null; }
-  };
-
   // ═══════════════ SIDEBAR ═══════════════
   if (section === 'sidebar') {
     return (
       <div className="sidebar-content">
-        {/* Botón para crear reporte (solo si está autenticado) */}
         {isAuthenticated ? (
           reportMode ? (
             <div className="glass-card">
@@ -197,16 +175,16 @@ export default function MapView({
                   <X size={14} /> Cancelar
                 </button>
               </div>
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(); }}>
                 <div className="form-group">
                   <label>Tipo de incidente</label>
-                  <select className="form-select" value={type} onChange={(e) => setType(e.target.value)}>
+                  <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
                     {INCIDENT_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Descripción</label>
-                  <textarea className="form-textarea" rows="3" required value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Describe el incidente..." />
+                  <textarea className="form-textarea" rows="3" required value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} placeholder="Describe el incidente..." />
                 </div>
                 <div className="form-group">
                   <label>Ubicación</label>
@@ -235,7 +213,6 @@ export default function MapView({
           </div>
         )}
 
-        {/* Lista de reportes (siempre visible, público) */}
         <div className="section-header" style={{ marginTop: '0.5rem' }}>
           <h2>Incidentes Recientes</h2>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{reports.length}</span>

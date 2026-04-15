@@ -31,6 +31,12 @@ export default function App() {
   const [reportMode, setReportMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
+  // Estado compartido del formulario de reporte (lifted from MapView)
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [reportDesc, setReportDesc] = useState('');
+  const [reportType, setReportType] = useState('ROBBERY');
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     reportsAPI.getAll()
       .then((res) => {
@@ -40,8 +46,35 @@ export default function App() {
       .catch((err) => console.error('Error fetching reports:', err));
   }, []);
 
-  // Cerrar login modal cuando el user se autentica
   useEffect(() => { if (user) setShowLogin(false); }, [user]);
+
+  const cancelReportMode = () => {
+    setReportMode(false);
+    setSelectedLocation(null);
+    setReportDesc('');
+  };
+
+  const handleSubmitReport = async () => {
+    if (!selectedLocation) return;
+    setSubmitting(true);
+    try {
+      await reportsAPI.create({
+        description: reportDesc,
+        incidentType: reportType,
+        address: `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`,
+        source: 'CITIZEN_TEXT',
+        latitude: selectedLocation.lat,
+        longitude: selectedLocation.lng,
+      });
+      setReportDesc('');
+      setSelectedLocation(null);
+      setReportMode(false);
+    } catch (err) {
+      console.error('Error creating report:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -56,17 +89,21 @@ export default function App() {
 
   const tabs = user ? [...AUTH_TABS, ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : [])] : PUBLIC_TABS;
 
+  // Props compartidos para MapView
+  const mapProps = {
+    reports, setReports,
+    wsConnected, setWsConnected,
+    isAuthenticated: !!user,
+    reportMode, setReportMode,
+    selectedLocation, setSelectedLocation,
+    reportDesc, setReportDesc,
+    reportType, setReportType,
+    submitting, handleSubmitReport, cancelReportMode,
+  };
+
   const renderSidebarContent = () => {
     switch (activeTab) {
-      case 'map':
-        return (
-          <MapView
-            reports={reports} setReports={setReports}
-            wsConnected={wsConnected} setWsConnected={setWsConnected}
-            section="sidebar" isAuthenticated={!!user}
-            reportMode={reportMode} setReportMode={setReportMode}
-          />
-        );
+      case 'map': return <MapView {...mapProps} section="sidebar" />;
       case 'dashboard': return <DashboardView section="sidebar" />;
       case 'notifications': return <NotificationsView section="sidebar" />;
       case 'admin': return <AdminView section="sidebar" />;
@@ -76,16 +113,7 @@ export default function App() {
 
   const renderMainContent = () => {
     switch (activeTab) {
-      case 'map':
-        return (
-          <MapView
-            reports={reports} setReports={setReports}
-            wsConnected={wsConnected} setWsConnected={setWsConnected}
-            section="main" isAuthenticated={!!user}
-            reportMode={reportMode} setReportMode={setReportMode}
-            theme={theme}
-          />
-        );
+      case 'map': return <MapView {...mapProps} section="main" theme={theme} />;
       case 'dashboard': return <DashboardView section="main" />;
       case 'notifications': return <NotificationsView section="main" />;
       case 'admin': return <AdminView section="main" />;
@@ -140,7 +168,6 @@ export default function App() {
 
       {renderMainContent()}
 
-      {/* Login modal overlay */}
       {showLogin && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
           <LoginPage onBack={() => setShowLogin(false)} />
@@ -149,4 +176,3 @@ export default function App() {
     </div>
   );
 }
-
