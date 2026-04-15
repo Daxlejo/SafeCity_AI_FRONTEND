@@ -184,7 +184,7 @@ export default function MapView({
                 </div>
                 <div className="form-group">
                   <label>Descripción</label>
-                  <textarea className="form-textarea" rows="3" required value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} placeholder="Describe el incidente..." />
+                  <textarea className="form-textarea" rows="3" required minLength={10} value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} placeholder="Describe el incidente (mín. 10 caracteres)..." />
                 </div>
                 <div className="form-group">
                   <label>Ubicación</label>
