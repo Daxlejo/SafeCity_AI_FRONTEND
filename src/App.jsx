@@ -69,8 +69,16 @@ export default function App() {
       setReportDesc('');
       setSelectedLocation(null);
       setReportMode(false);
+      // Refrescar lista de reportes
+      try {
+        const res = await reportsAPI.getAll();
+        const data = res.data?.content || res.data || [];
+        setReports(Array.isArray(data) ? data : []);
+      } catch (_) { /* ignorar error de refresh */ }
     } catch (err) {
-      console.error('Error creating report:', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Error desconocido';
+      alert(`Error al crear reporte: ${msg}`);
+      console.error('Error creating report:', err.response?.data || err);
     } finally {
       setSubmitting(false);
     }

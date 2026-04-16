@@ -51,7 +51,7 @@ export const authAPI = {
 
 export const reportsAPI = {
   getAll: (page = 0, size = 50) =>
-    api.get(`/reports?page=${page}&size=${size}&sort=reportDate,desc`),
+    api.get(`/reports?page=${page}&size=${size}&sort=reportDate&direction=DESC`),
   getById: (id) => api.get(`/reports/${id}`),
   create: (data) => api.post('/reports', data),
   update: (id, data) => api.put(`/reports/${id}`, data),
