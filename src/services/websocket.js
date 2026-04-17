@@ -5,9 +5,11 @@ const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws:
 
 let stompClient = null;
 let onReportCallback = null;
+let onUpdateCallback = null;
 
-export function connectWebSocket(onReport) {
+export function connectWebSocket(onReport, onUpdate) {
   onReportCallback = onReport;
+  onUpdateCallback = onUpdate;
 
   stompClient = new Client({
     brokerURL: WS_URL,
@@ -17,12 +19,23 @@ export function connectWebSocket(onReport) {
   });
 
   stompClient.onConnect = () => {
+    // Escuchar reportes NUEVOS
     stompClient.subscribe('/topic/reports/ALL', (message) => {
       try {
         const report = JSON.parse(message.body);
         if (onReportCallback) onReportCallback(report);
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);
+      }
+    });
+
+    // Escuchar reportes ACTUALIZADOS (ej: IA cambió status a VERIFIED)
+    stompClient.subscribe('/topic/reports/updated', (message) => {
+      try {
+        const report = JSON.parse(message.body);
+        if (onUpdateCallback) onUpdateCallback(report);
+      } catch (err) {
+        console.error('Error parsing WebSocket update:', err);
       }
     });
   };

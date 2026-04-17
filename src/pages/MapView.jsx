@@ -149,12 +149,19 @@ export default function MapView({
   // WebSocket
   useEffect(() => {
     if (section !== 'main') return;
-    connectWebSocket((newReport) => {
-      setReports((prev) => {
-        const filtered = prev.filter((r) => r.id !== newReport.id);
-        return [newReport, ...filtered];
-      });
-    });
+    connectWebSocket(
+      (newReport) => {
+        setReports((prev) => {
+          const filtered = prev.filter((r) => r.id !== newReport.id);
+          return [newReport, ...filtered];
+        });
+      },
+      (updatedReport) => {
+        setReports((prev) =>
+          prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+        );
+      }
+    );
     const interval = setInterval(() => setWsConnected(isConnected()), 3000);
     return () => {
       clearInterval(interval);
@@ -232,7 +239,7 @@ export default function MapView({
                 </div>
                 <div className="report-card-desc">{r.description}</div>
                 <div className="report-card-meta">
-                  <span><MapPin size={11} /> {r.address || 'Sin dirección'}</span>
+                  <span><MapPin size={11} /> {r.address || `${r.latitude}, ${r.longitude}`}</span>
                   {r.trustScore != null && (
                     <span style={{ color: r.trustScore >= 60 ? 'var(--success)' : 'var(--warning)' }}>{r.trustScore.toFixed(0)}%</span>
                   )}

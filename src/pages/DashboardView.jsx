@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { statsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   FileText, Clock, CheckCircle, XCircle, Users, MapPin,
   BarChart3, TrendingUp, AlertTriangle, Shield, Activity
@@ -11,6 +11,7 @@ const RISK_COLORS = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#10b981' };
 const RISK_LABELS = { HIGH: 'Alto', MEDIUM: 'Medio', LOW: 'Bajo' };
 
 export default function DashboardView({ section }) {
+  const { isAuthenticated } = useAuth();
   const [stats, setStats] = useState(null);
   const [dangerousZones, setDangerousZones] = useState([]);
   const [timeline, setTimeline] = useState([]);
@@ -153,55 +154,71 @@ export default function DashboardView({ section }) {
           </div>
 
           {/* ═══ Ranking de Zonas Peligrosas ═══ */}
-          <div className="glass-card" style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
-              <AlertTriangle size={18} style={{ color: '#ef4444' }} />
-              Zonas con Mayor Riesgo — Última Semana
-            </h3>
-            {dangerousZones.length === 0 ? (
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>
-                No hay suficientes datos esta semana para generar el ranking
+          {isAuthenticated ? (
+            <div className="glass-card" style={{ padding: '1.25rem' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
+                <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+                Zonas con Mayor Riesgo — Última Semana
+              </h3>
+              {dangerousZones.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>
+                  No hay suficientes datos esta semana para generar el ranking
+                </p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {dangerousZones.map((zone) => (
+                    <div key={zone.rank} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      padding: '1rem', borderRadius: '0.75rem',
+                      background: zone.rank === 1 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${zone.rank === 1 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                      transition: 'transform 0.2s ease',
+                    }}>
+                      {/* Posición */}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: '0.5rem', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', fontWeight: 800,
+                        fontSize: '1.1rem', flexShrink: 0,
+                        background: RISK_COLORS[zone.riskLevel] + '22',
+                        color: RISK_COLORS[zone.riskLevel],
+                      }}>
+                        #{zone.rank}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{zone.areaName}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {zone.incidentCount} incidentes · Tipo común: {TYPE_LABELS[zone.mostCommonType] || zone.mostCommonType}
+                        </p>
+                      </div>
+                      {/* Risk badge */}
+                      <span style={{
+                        padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 600,
+                        background: RISK_COLORS[zone.riskLevel] + '22',
+                        color: RISK_COLORS[zone.riskLevel],
+                      }}>
+                        {RISK_LABELS[zone.riskLevel] || zone.riskLevel}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="glass-card" style={{
+              padding: '2.5rem 1.25rem', textAlign: 'center',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
+              borderRadius: '0.75rem'
+            }}>
+              <AlertTriangle size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 0.75rem auto' }} />
+              <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                🔒 Ranking de Zonas de Riesgo
               </p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                {dangerousZones.map((zone) => (
-                  <div key={zone.rank} style={{
-                    display: 'flex', alignItems: 'center', gap: '1rem',
-                    padding: '1rem', borderRadius: '0.75rem',
-                    background: zone.rank === 1 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${zone.rank === 1 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
-                    transition: 'transform 0.2s ease',
-                  }}>
-                    {/* Posición */}
-                    <div style={{
-                      width: 40, height: 40, borderRadius: '0.5rem', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', fontWeight: 800,
-                      fontSize: '1.1rem', flexShrink: 0,
-                      background: RISK_COLORS[zone.riskLevel] + '22',
-                      color: RISK_COLORS[zone.riskLevel],
-                    }}>
-                      #{zone.rank}
-                    </div>
-                    {/* Info */}
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{zone.areaName}</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {zone.incidentCount} incidentes · Tipo común: {TYPE_LABELS[zone.mostCommonType] || zone.mostCommonType}
-                      </p>
-                    </div>
-                    {/* Risk badge */}
-                    <span style={{
-                      padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 600,
-                      background: RISK_COLORS[zone.riskLevel] + '22',
-                      color: RISK_COLORS[zone.riskLevel],
-                    }}>
-                      {RISK_LABELS[zone.riskLevel] || zone.riskLevel}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: 300, margin: '0 auto' }}>
+                Inicia sesión para ver el ranking semanal de zonas más peligrosas
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -245,19 +262,21 @@ export default function DashboardView({ section }) {
       </div>
 
       {/* Mini ranking en sidebar */}
-      <div className="glass-card" style={{ marginTop: '0.5rem' }}>
-        <div className="section-header"><h2 style={{ fontSize: '0.85rem' }}>🔴 Zonas de Riesgo</h2></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {dangerousZones.slice(0, 3).map((zone) => (
-            <div key={zone.rank} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-              <span style={{ fontWeight: 800, color: RISK_COLORS[zone.riskLevel], minWidth: 20 }}>#{zone.rank}</span>
-              <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{zone.areaName}</span>
-              <span style={{ fontWeight: 600, color: RISK_COLORS[zone.riskLevel] }}>{zone.incidentCount}</span>
-            </div>
-          ))}
-          {dangerousZones.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>Sin datos</p>}
+      {isAuthenticated && (
+        <div className="glass-card" style={{ marginTop: '0.5rem' }}>
+          <div className="section-header"><h2 style={{ fontSize: '0.85rem' }}>🔴 Zonas de Riesgo</h2></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {dangerousZones.slice(0, 3).map((zone) => (
+              <div key={zone.rank} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
+                <span style={{ fontWeight: 800, color: RISK_COLORS[zone.riskLevel], minWidth: 20 }}>#{zone.rank}</span>
+                <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{zone.areaName}</span>
+                <span style={{ fontWeight: 600, color: RISK_COLORS[zone.riskLevel] }}>{zone.incidentCount}</span>
+              </div>
+            ))}
+            {dangerousZones.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>Sin datos</p>}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="glass-card">
         <div className="section-header"><h2 style={{ fontSize: '0.85rem' }}>Reportes por Tipo</h2></div>
