@@ -14,13 +14,16 @@ import {
 
 const PUBLIC_TABS = [
   { id: 'map', label: 'Mapa', icon: Map },
-  { id: 'dashboard', label: 'Stats', icon: BarChart3 },
 ];
 
 const AUTH_TABS = [
   { id: 'map', label: 'Mapa', icon: Map },
-  { id: 'dashboard', label: 'Stats', icon: BarChart3 },
   { id: 'notifications', label: 'Alertas', icon: Bell },
+];
+
+const ADMIN_TABS = [
+  { id: 'dashboard', label: 'Stats', icon: BarChart3 },
+  { id: 'admin', label: 'Admin', icon: ShieldCheck }
 ];
 
 export default function App() {
@@ -96,7 +99,7 @@ export default function App() {
     );
   }
 
-  const tabs = user ? [...AUTH_TABS, ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck }] : [])] : PUBLIC_TABS;
+  const tabs = user ? [...AUTH_TABS, ...(isAdmin ? ADMIN_TABS : [])] : PUBLIC_TABS;
 
   // Props compartidos para MapView
   const mapProps = {
