@@ -14,6 +14,7 @@ import {
 
 const PUBLIC_TABS = [
   { id: 'map', label: 'Mapa', icon: Map },
+  { id: 'dashboard', label: 'Stats', icon: BarChart3 },
 ];
 
 const AUTH_TABS = [

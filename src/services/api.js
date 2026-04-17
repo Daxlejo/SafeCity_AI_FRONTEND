@@ -77,6 +77,8 @@ export const statsAPI = {
   getByZone: () => api.get('/stats/by-zone'),
   getTimeline: (limit = 10) => api.get(`/stats/timeline?limit=${limit}`),
   getHeatmap: () => api.get('/stats/heatmap'),
+  getDangerousZones: (days = 7, limit = 10) =>
+    api.get(`/stats/dangerous-zones?days=${days}&limit=${limit}`),
 };
 
 // ═══════════════════════════════════════════
@@ -97,6 +99,9 @@ export const notificationsAPI = {
 export const adminAPI = {
   getUsers: (page = 0, size = 20) => api.get(`/admin/users?page=${page}&size=${size}`),
   getUserById: (id) => api.get(`/admin/users/${id}`),
+  changeRole: (id, role) => api.put(`/admin/users/${id}/role?role=${role}`),
+  toggleBan: (id) => api.put(`/admin/users/${id}/ban`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   updateReportStatus: (id, status) => api.put(`/admin/reports/${id}/status?status=${status}`),
 };
 
