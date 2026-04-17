@@ -160,6 +160,9 @@ export default function MapView({
         setReports((prev) =>
           prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
         );
+      },
+      (deletedId) => {
+        setReports((prev) => prev.filter((r) => r.id !== deletedId));
       }
     );
     const interval = setInterval(() => setWsConnected(isConnected()), 3000);
