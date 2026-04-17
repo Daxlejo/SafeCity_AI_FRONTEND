@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { statsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
