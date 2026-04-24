@@ -12,7 +12,7 @@ const STATUS_COLORS = { PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4
 const TYPE_LABELS = { ROBBERY: 'Robo', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Op. Tránsito', OTHER: 'Otro' };
 const ROLE_OPTIONS = ['CITIZEN', 'ADMIN'];
 
-export default function AdminView({ section }) {
+export default function AdminView({ section, reports: globalReports, onReportUpdated }) {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState([]);
@@ -26,6 +26,21 @@ export default function AdminView({ section }) {
     loadUsers();
     loadReports();
   }, [isAdmin]);
+
+  // Sincronizar con actualizaciones del WebSocket que llegan via App.jsx
+  // Cuando la IA cambia el estado de un reporte (ej: PENDING -> VERIFIED),
+  // el WebSocket lo propaga al array global en App.jsx, que lo pasa aquí.
+  useEffect(() => {
+    if (globalReports && globalReports.length > 0) {
+      setReports((prev) => {
+        if (prev.length === 0) return prev; // si no ha cargado aún, no sobreescribir
+        return prev.map((r) => {
+          const updated = globalReports.find((gr) => gr.id === r.id);
+          return updated ? { ...r, status: updated.status, trustScore: updated.trustScore } : r;
+        });
+      });
+    }
+  }, [globalReports]);
 
   const loadUsers = async () => {
     try {
@@ -46,7 +61,10 @@ export default function AdminView({ section }) {
   const updateStatus = async (id, newStatus) => {
     try {
       await adminAPI.updateReportStatus(id, newStatus);
+      // Actualizar estado local
       setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+      // Notificar al componente padre (App.jsx) para mantener el estado global sincronizado
+      if (onReportUpdated) onReportUpdated(id, newStatus);
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
     }

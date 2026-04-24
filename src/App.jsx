@@ -52,6 +52,11 @@ export default function App() {
 
   useEffect(() => { if (user) setShowLogin(false); }, [user]);
 
+  // Sincronizar cambio de status del admin con el estado global
+  const handleReportUpdated = (id, newStatus) => {
+    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+  };
+
   const cancelReportMode = () => {
     setReportMode(false);
     setSelectedLocation(null);
@@ -118,7 +123,7 @@ export default function App() {
       case 'map': return <MapView {...mapProps} section="sidebar" />;
       case 'dashboard': return <DashboardView section="sidebar" />;
       case 'notifications': return <NotificationsView section="sidebar" />;
-      case 'admin': return <AdminView section="sidebar" />;
+      case 'admin': return <AdminView section="sidebar" reports={reports} onReportUpdated={handleReportUpdated} />;
       default: return null;
     }
   };
@@ -128,7 +133,7 @@ export default function App() {
       case 'map': return <MapView {...mapProps} section="main" theme={theme} />;
       case 'dashboard': return <DashboardView section="main" />;
       case 'notifications': return <NotificationsView section="main" />;
-      case 'admin': return <AdminView section="main" />;
+      case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
       default: return null;
     }
   };

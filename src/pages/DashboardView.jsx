@@ -17,11 +17,13 @@ export default function DashboardView({ section }) {
   const [dangerousZones, setDangerousZones] = useState([]);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [summaryRes, zonesRes, timelineRes] = await Promise.all([
         statsAPI.getSummary(),
@@ -33,6 +35,14 @@ export default function DashboardView({ section }) {
       setTimeline(timelineRes.data || []);
     } catch (err) {
       console.error('Error loading stats:', err);
+      const status = err.response?.status;
+      if (status === 403) {
+        setError('No tienes permisos para ver estas estadísticas. Asegúrate de haber iniciado sesión como administrador.');
+      } else if (status === 401) {
+        setError('Tu sesión expiró. Por favor ingresa de nuevo.');
+      } else {
+        setError('No se pudieron cargar las estadísticas. Verifica tu conexión.');
+      }
     } finally {
       setLoading(false);
     }
@@ -46,6 +56,18 @@ export default function DashboardView({ section }) {
           <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
             <span className="spinner" />
             <p style={{ marginTop: '1rem' }}>Cargando dashboard...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="main-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', maxWidth: 400 }}>
+            <AlertTriangle size={40} style={{ color: '#f59e0b', margin: '0 auto 1rem' }} />
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>{error}</p>
+            <button className="btn btn-ghost" onClick={loadAll}>Reintentar</button>
           </div>
         </div>
       );
