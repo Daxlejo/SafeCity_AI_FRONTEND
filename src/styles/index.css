@@ -215,6 +215,41 @@ body {
   flex-direction: column;
   z-index: 100;
   position: relative;
+  transition: margin-left var(--transition-base);
+}
+
+.sidebar-collapsed .sidebar {
+  margin-left: -400px;
+}
+
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 50%;
+  left: 400px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: left var(--transition-base), background var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--accent);
+}
+
+.sidebar-collapsed .sidebar-toggle-btn {
+  left: 0;
 }
 
 .sidebar-header {

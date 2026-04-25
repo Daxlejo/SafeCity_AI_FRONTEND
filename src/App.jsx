@@ -11,7 +11,7 @@ import ProfileView from './pages/ProfileView';
 import ReportDetailModal from './components/ReportDetailModal';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
-  Sun, Moon, ShieldCheck
+  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const PUBLIC_TABS = [
@@ -38,6 +38,14 @@ export default function App() {
   const [reportMode, setReportMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 250); // Mismo tiempo que la transición CSS
+    return () => clearTimeout(timer);
+  }, [isSidebarCollapsed]);
 
   // Estado compartido del formulario de reporte (lifted from MapView)
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -146,7 +154,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="sidebar">
         <div className="sidebar-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -189,6 +197,14 @@ export default function App() {
 
         {renderSidebarContent()}
       </div>
+
+      <button
+        className="sidebar-toggle-btn"
+        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        title={isSidebarCollapsed ? "Mostrar panel" : "Ocultar panel"}
+      >
+        {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      </button>
 
       {renderMainContent()}
 
