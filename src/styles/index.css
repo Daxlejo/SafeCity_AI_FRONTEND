@@ -844,9 +844,10 @@ body {
   background: var(--bg-primary);
 }
 
-/* Dark map tiles */
+/* Dark map tiles (Night Mode like Google Maps) */
 .leaflet-tile-pane {
-  filter: brightness(0.85) contrast(1.1) saturate(0.9);
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.2);
+  transition: filter var(--transition-base);
 }
 
 .leaflet-control-zoom a {
