@@ -7,6 +7,7 @@ import MapView from './pages/MapView';
 import DashboardView from './pages/DashboardView';
 import NotificationsView from './pages/NotificationsView';
 import AdminView from './pages/AdminView';
+import ReportDetailModal from './components/ReportDetailModal';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
   Sun, Moon, ShieldCheck
@@ -34,6 +35,7 @@ export default function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [reportMode, setReportMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   // Estado compartido del formulario de reporte (lifted from MapView)
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -116,6 +118,7 @@ export default function App() {
     reportDesc, setReportDesc,
     reportType, setReportType,
     submitting, handleSubmitReport, cancelReportMode,
+    onReportClick: setSelectedReport,
   };
 
   const renderSidebarContent = () => {
@@ -189,6 +192,13 @@ export default function App() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
           <LoginPage onBack={() => setShowLogin(false)} />
         </div>
+      )}
+
+      {selectedReport && (
+        <ReportDetailModal
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+        />
       )}
     </div>
   );

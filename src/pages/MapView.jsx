@@ -1,8 +1,9 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
-import { MapPin, Send, Crosshair, Plus, X, Lock } from 'lucide-react';
+import { uploadAPI } from '../services/api';
+import { MapPin, Send, Crosshair, Plus, X, Lock, Navigation, Camera } from 'lucide-react';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -42,6 +43,7 @@ export default function MapView({
   selectedLocation, setSelectedLocation,
   reportDesc, setReportDesc, reportType, setReportType,
   submitting, handleSubmitReport, cancelReportMode,
+  onReportClick,
   theme
 }) {
   const mapRef = useRef(null);
@@ -51,6 +53,11 @@ export default function MapView({
   const selectedMarkerRef = useRef(null);
   const reportModeRef = useRef(reportMode);
   const setSelectedLocationRef = useRef(setSelectedLocation);
+
+  const [geoLocating, setGeoLocating] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(null);
 
   // Sincronizar refs
   useEffect(() => { reportModeRef.current = reportMode; }, [reportMode]);
@@ -172,6 +179,42 @@ export default function MapView({
     };
   }, [section, setReports, setWsConnected]);
 
+  // Geolocalización automática
+  const handleGeolocate = () => {
+    if (!navigator.geolocation) return;
+    setGeoLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setSelectedLocation({ lat: latitude, lng: longitude });
+        if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
+        setGeoLocating(false);
+      },
+      () => {
+        alert('No se pudo obtener tu ubicación. Selecciónala en el mapa.');
+        setGeoLocating(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  // Subida de foto
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setUploadingPhoto(true);
+    try {
+      const res = await uploadAPI.uploadPhoto(file);
+      setPhotoUrl(res.data?.filename || res.data?.url || null);
+    } catch (err) {
+      console.error('Error subiendo foto:', err);
+      setPhotoUrl(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   // ═══════════════ SIDEBAR ═══════════════
   if (section === 'sidebar') {
     return (
@@ -198,14 +241,43 @@ export default function MapView({
                 </div>
                 <div className="form-group">
                   <label>Ubicación</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                    <Crosshair size={14} style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)' }} />
-                    <span style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)' }}>
-                      {selectedLocation ? `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}` : 'Haz clic en el mapa para marcar'}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                      <Crosshair size={14} style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }} />
+                      <span style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedLocation ? `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}` : 'Clic en mapa o usar GPS'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleGeolocate}
+                      disabled={geoLocating}
+                      title="Usar mi ubicación GPS"
+                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }}
+                    >
+                      {geoLocating ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Navigation size={12} />}
+                      GPS
+                    </button>
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary btn-full" disabled={!selectedLocation || submitting}>
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Camera size={13} /> Foto (opcional)
+                  </label>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                    padding: '0.5rem 0.75rem', borderRadius: '0.4rem',
+                    border: '1px dashed var(--border-color)', fontSize: '0.78rem',
+                    color: photoFile ? 'var(--success)' : 'var(--text-muted)',
+                    background: 'rgba(255,255,255,0.03)',
+                  }}>
+                    <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+                    {uploadingPhoto ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Camera size={13} />}
+                    {uploadingPhoto ? 'Subiendo...' : photoFile ? photoFile.name.substring(0, 20) + '...' : 'Seleccionar imagen'}
+                  </label>
+                </div>
+                <button type="submit" className="btn btn-primary btn-full" disabled={!selectedLocation || submitting || uploadingPhoto}>
                   {submitting ? <span className="spinner" /> : <Send size={16} />}
                   {submitting ? 'Enviando...' : 'Enviar Reporte'}
                 </button>
@@ -233,16 +305,22 @@ export default function MapView({
             <div className="empty-state"><MapPin size={24} /><p>No hay reportes recientes</p></div>
           ) : (
             reports.slice(0, 30).map((r) => (
-              <div className="report-card" key={r.id} onClick={() => {
-                if (r.latitude && r.longitude && mapInstance.current) mapInstance.current.flyTo([r.latitude, r.longitude], 16);
-              }}>
+              <div
+                className="report-card"
+                key={r.id}
+                onClick={() => {
+                  if (r.latitude && r.longitude && mapInstance.current) mapInstance.current.flyTo([r.latitude, r.longitude], 16);
+                  if (onReportClick) onReportClick(r);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="report-card-header">
                   <span className={`badge badge-${r.incidentType?.toLowerCase()}`}>{r.incidentType}</span>
                   <span className={`badge badge-status badge-${r.status?.toLowerCase()}`}>{r.status}</span>
                 </div>
                 <div className="report-card-desc">{r.description}</div>
                 <div className="report-card-meta">
-                  <span><MapPin size={11} /> {r.address || `${r.latitude}, ${r.longitude}`}</span>
+                  <span><MapPin size={11} /> {r.address || (r.latitude ? `${r.latitude?.toFixed(4)}, ${r.longitude?.toFixed(4)}` : 'Sin ubicación')}</span>
                   {r.trustScore != null && (
                     <span style={{ color: r.trustScore >= 60 ? 'var(--success)' : 'var(--warning)' }}>{r.trustScore.toFixed(0)}%</span>
                   )}
