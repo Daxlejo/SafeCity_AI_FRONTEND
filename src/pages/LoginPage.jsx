@@ -6,25 +6,40 @@ import { Shield, AlertCircle, Mail, Lock, User, CreditCard, Sun, Moon, ArrowLeft
 export default function LoginPage({ onBack }) {
   const { login, register } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [isRegister, setIsRegister] = useState(false);
+  const [view, setView] = useState('login'); // 'login', 'register', 'forgot', 'reset'
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     identifier: '', password: '', name: '', email: '', cedula: '',
+    token: '', newPassword: ''
   });
 
-  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); };
+  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); setSuccess(''); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
-      if (isRegister) {
+      if (view === 'register') {
         await register({ name: form.name, email: form.email, cedula: form.cedula, password: form.password });
-      } else {
+      } else if (view === 'login') {
         await login(form.identifier, form.password);
+      } else if (view === 'forgot') {
+        // Implement forgot password call
+        const { authAPI } = await import('../services/api');
+        await authAPI.forgotPassword(form.email);
+        setSuccess('Si el correo existe, hemos enviado un enlace/token.');
+        setTimeout(() => setView('reset'), 2000);
+      } else if (view === 'reset') {
+        // Implement reset password call
+        const { authAPI } = await import('../services/api');
+        await authAPI.resetPassword(form.token, form.newPassword);
+        setSuccess('Contraseña actualizada correctamente. Iniciando sesión...');
+        setTimeout(() => setView('login'), 2000);
       }
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Error de conexión');
@@ -50,15 +65,23 @@ export default function LoginPage({ onBack }) {
         </div>
 
         <div className="auth-logo"><Shield size={32} /></div>
-        <h1>{isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}</h1>
+        <h1>
+          {view === 'register' ? 'Crear Cuenta' : 
+           view === 'forgot' ? 'Recuperar Contraseña' :
+           view === 'reset' ? 'Nueva Contraseña' : 'Iniciar Sesión'}
+        </h1>
         <p className="auth-subtitle">
-          {isRegister ? 'Únete a la red de seguridad ciudadana' : 'Plataforma de seguridad ciudadana'}
+          {view === 'register' ? 'Únete a la red de seguridad ciudadana' : 
+           view === 'forgot' ? 'Ingresa tu correo para recibir instrucciones' :
+           view === 'reset' ? 'Ingresa el token recibido y tu nueva contraseña' :
+           'Plataforma de seguridad ciudadana'}
         </p>
 
         {error && <div className="form-error"><AlertCircle size={16} />{error}</div>}
+        {success && <div className="form-error" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}><Shield size={16} />{success}</div>}
 
         <form onSubmit={handleSubmit}>
-          {isRegister && (
+          {view === 'register' && (
             <>
               <div className="form-group">
                 <label>Nombre completo</label>
@@ -83,7 +106,8 @@ export default function LoginPage({ onBack }) {
               </div>
             </>
           )}
-          {!isRegister && (
+
+          {view === 'login' && (
             <div className="form-group">
               <label>Email o Cédula</label>
               <div style={{ position: 'relative' }}>
@@ -92,23 +116,69 @@ export default function LoginPage({ onBack }) {
               </div>
             </div>
           )}
-          <div className="form-group">
-            <label>Contraseña</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input type="password" name="password" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.password} onChange={handleChange} required minLength={6} />
+
+          {view === 'forgot' && (
+            <div className="form-group">
+              <label>Email registrado</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input type="email" name="email" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} required />
+              </div>
             </div>
-          </div>
+          )}
+
+          {view === 'reset' && (
+            <>
+              <div className="form-group">
+                <label>Token de recuperación</label>
+                <div style={{ position: 'relative' }}>
+                  <Shield size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input type="text" name="token" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Ingresa el token" value={form.token} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Nueva Contraseña</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input type="password" name="newPassword" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.newPassword} onChange={handleChange} required minLength={6} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {(view === 'login' || view === 'register') && (
+            <div className="form-group">
+              <label>Contraseña</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input type="password" name="password" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.password} onChange={handleChange} required minLength={6} />
+              </div>
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading && <span className="spinner" />}
-            {loading ? 'Procesando...' : isRegister ? 'Registrarse' : 'Ingresar'}
+            {loading ? 'Procesando...' : 
+             view === 'register' ? 'Registrarse' : 
+             view === 'forgot' ? 'Enviar Token' :
+             view === 'reset' ? 'Actualizar Contraseña' : 'Ingresar'}
           </button>
         </form>
 
+        {view === 'login' && (
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setView('forgot'); setError(''); setSuccess(''); }}>
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+        )}
+
         <div className="auth-toggle">
-          {isRegister ? '¿Ya tienes cuenta? ' : '¿No tienes cuenta? '}
-          <button onClick={() => { setIsRegister(!isRegister); setError(''); }}>
-            {isRegister ? 'Inicia sesión' : 'Regístrate'}
+          {view === 'register' ? '¿Ya tienes cuenta? ' : 
+           view === 'login' ? '¿No tienes cuenta? ' : 
+           '¿Recordaste tu contraseña? '}
+          <button onClick={() => { setView(view === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); }}>
+            {view === 'login' ? 'Regístrate' : 'Inicia sesión'}
           </button>
         </div>
       </div>

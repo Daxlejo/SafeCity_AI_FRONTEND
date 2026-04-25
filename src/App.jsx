@@ -7,6 +7,7 @@ import MapView from './pages/MapView';
 import DashboardView from './pages/DashboardView';
 import NotificationsView from './pages/NotificationsView';
 import AdminView from './pages/AdminView';
+import ProfileView from './pages/ProfileView';
 import ReportDetailModal from './components/ReportDetailModal';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
@@ -20,6 +21,7 @@ const PUBLIC_TABS = [
 const AUTH_TABS = [
   { id: 'map', label: 'Mapa', icon: Map },
   { id: 'notifications', label: 'Alertas', icon: Bell },
+  { id: 'profile', label: 'Perfil', icon: User },
 ];
 
 const ADMIN_TABS = [
@@ -127,6 +129,7 @@ export default function App() {
       case 'dashboard': return <DashboardView section="sidebar" />;
       case 'notifications': return <NotificationsView section="sidebar" />;
       case 'admin': return <AdminView section="sidebar" reports={reports} onReportUpdated={handleReportUpdated} />;
+      case 'profile': return <ProfileView section="sidebar" />;
       default: return null;
     }
   };
@@ -134,9 +137,10 @@ export default function App() {
   const renderMainContent = () => {
     switch (activeTab) {
       case 'map': return <MapView {...mapProps} section="main" theme={theme} />;
-      case 'dashboard': return <DashboardView section="main" />;
+      case 'dashboard': return <DashboardView section="main" onReportClick={setSelectedReport} />;
       case 'notifications': return <NotificationsView section="main" />;
       case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
+      case 'profile': return <ProfileView section="main" />;
       default: return null;
     }
   };

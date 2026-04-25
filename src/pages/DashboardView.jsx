@@ -11,7 +11,7 @@ const TYPE_COLORS = { ROBBERY: '#ef4444', ACCIDENT: '#f59e0b', TRAFFIC: '#eab308
 const RISK_COLORS = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#10b981' };
 const RISK_LABELS = { HIGH: 'Alto', MEDIUM: 'Medio', LOW: 'Bajo' };
 
-export default function DashboardView({ section }) {
+export default function DashboardView({ section, onReportClick }) {
   const { isAuthenticated } = useAuth();
   const [stats, setStats] = useState(null);
   const [dangerousZones, setDangerousZones] = useState([]);
@@ -147,10 +147,15 @@ export default function DashboardView({ section }) {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 280, overflowY: 'auto' }}>
                 {timeline.map((r) => (
-                  <div key={r.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    padding: '0.6rem 0.75rem', borderRadius: '0.5rem',
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)'
+                  <div 
+                    key={r.id} 
+                    onClick={() => { if (onReportClick) onReportClick(r); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      padding: '0.6rem 0.75rem', borderRadius: '0.5rem',
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                      cursor: onReportClick ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease'
                   }}>
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,

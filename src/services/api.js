@@ -43,6 +43,17 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (data) => api.post('/auth/register', data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
+};
+
+// ═══════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════
+
+export const usersAPI = {
+  getMe: () => api.get('/users/me'),
+  updateMe: (data) => api.put('/users/me', data),
 };
 
 // ═══════════════════════════════════════════

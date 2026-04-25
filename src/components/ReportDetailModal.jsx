@@ -94,7 +94,7 @@ export default function ReportDetailModal({ report, onClose }) {
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
+      <div className="animate-modal-enter" style={{
         background: 'var(--bg-card)',
         border: '1px solid var(--border-color)',
         borderRadius: '1rem',
