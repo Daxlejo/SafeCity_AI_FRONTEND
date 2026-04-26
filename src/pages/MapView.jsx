@@ -194,11 +194,16 @@ export default function MapView({
         if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
         setGeoLocating(false);
       },
-      () => {
-        alert('No se pudo obtener tu ubicación. Selecciónala en el mapa.');
+      (err) => {
+        console.error('Geolocation error:', err.code, err.message);
+        let msg = 'No se pudo obtener tu ubicación. ';
+        if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
+        else if (err.code === 2) msg += 'GPS no disponible. Selecciónala en el mapa.';
+        else msg += 'Tiempo agotado. Selecciónala en el mapa.';
+        alert(msg);
         setGeoLocating(false);
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 

@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { authAPI } from '../services/api';
 import { Shield, AlertCircle, Mail, Lock, User, CreditCard, Sun, Moon, ArrowLeft } from 'lucide-react';
 
-export default function LoginPage({ onBack }) {
+export default function LoginPage({ onBack, initialView, initialToken }) {
   const { login, register } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [view, setView] = useState('login'); // 'login', 'register', 'forgot', 'reset'
+  const [view, setView] = useState(initialView || 'login');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     identifier: '', password: '', name: '', email: '', cedula: '',
-    token: '', newPassword: ''
+    token: initialToken || '', newPassword: ''
   });
 
   const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); setSuccess(''); };
@@ -29,14 +30,12 @@ export default function LoginPage({ onBack }) {
       } else if (view === 'login') {
         await login(form.identifier, form.password);
       } else if (view === 'forgot') {
-        // Implement forgot password call
-        const { authAPI } = await import('../services/api');
+        // Forgot password call
         await authAPI.forgotPassword(form.email);
         setSuccess('Si el correo existe, hemos enviado un enlace/token.');
         setTimeout(() => setView('reset'), 2000);
       } else if (view === 'reset') {
-        // Implement reset password call
-        const { authAPI } = await import('../services/api');
+        // Reset password call
         await authAPI.resetPassword(form.token, form.newPassword);
         setSuccess('Contraseña actualizada correctamente. Iniciando sesión...');
         setTimeout(() => setView('login'), 2000);

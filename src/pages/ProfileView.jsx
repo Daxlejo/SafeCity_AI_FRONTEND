@@ -5,16 +5,16 @@ import { User, Mail, CreditCard, Shield, Clock, Save, Lock, AlertCircle, CheckCi
 
 export default function ProfileView({ section }) {
   const { user, logout } = useAuth();
-  
+
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  const [formData, setFormData] = useState({ name: '', email: '', cedula: '' });
-  const [editMode, setEditMode] = useState({ name: false, email: false, cedula: false });
+
+  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [editMode, setEditMode] = useState({ name: false, email: false });
   const [savingField, setSavingField] = useState(null);
-  
+
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [savingPass, setSavingPass] = useState(false);
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
@@ -30,8 +30,7 @@ export default function ProfileView({ section }) {
       setProfileData(res.data);
       setFormData({
         name: res.data.name || '',
-        email: res.data.email || '',
-        cedula: res.data.cedula || ''
+        email: res.data.email || ''
       });
     } catch (err) {
       setError('Error al cargar el perfil.');
@@ -46,18 +45,18 @@ export default function ProfileView({ section }) {
 
   const handleSave = async (field) => {
     setError(''); setSuccess('');
-    
+
     if (!String(formData[field]).trim()) {
-       setFormData(prev => ({...prev, [field]: profileData[field] || ''}));
-       setEditMode(prev => ({ ...prev, [field]: false }));
-       return;
+      setFormData(prev => ({ ...prev, [field]: profileData[field] || '' }));
+      setEditMode(prev => ({ ...prev, [field]: false }));
+      return;
     }
 
     if (formData[field] === profileData[field]) {
       setEditMode(prev => ({ ...prev, [field]: false }));
       return;
     }
-    
+
     setSavingField(field);
     try {
       await usersAPI.updateMe({ [field]: formData[field] });
@@ -75,7 +74,11 @@ export default function ProfileView({ section }) {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    
+
+    if (!passwords.current.trim()) {
+      setError('Debes ingresar tu contraseña actual.');
+      return;
+    }
     if (passwords.new !== passwords.confirm) {
       setError('Las contraseñas no coinciden.');
       return;
@@ -84,14 +87,10 @@ export default function ProfileView({ section }) {
       setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-    
+
     setSavingPass(true);
     try {
-      // Nota: Asumiendo que updateMe puede recibir { currentPassword, newPassword } 
-      // Dependerá del backend real. Si el backend es distinto, ajustaremos.
-      await usersAPI.updateMe({ 
-        password: passwords.new 
-      });
+      await usersAPI.changePassword(passwords.current, passwords.new);
       setSuccess('Contraseña actualizada correctamente.');
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (err) {
@@ -158,24 +157,24 @@ export default function ProfileView({ section }) {
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
-          
+
           {/* Información General */}
           <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
               Información Personal
             </h2>
-            
+
             {/* Nombre */}
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <User size={14} /> Nombre Completo
               </label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={!editMode.name}
                   style={{ flex: 1, opacity: editMode.name ? 1 : 0.7 }}
                 />
@@ -197,11 +196,11 @@ export default function ProfileView({ section }) {
                 <Mail size={14} /> Correo Electrónico
               </label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                <input
+                  type="email"
+                  className="form-input"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={!editMode.email}
                   style={{ flex: 1, opacity: editMode.email ? 1 : 0.7 }}
                 />
@@ -217,30 +216,18 @@ export default function ProfileView({ section }) {
               </div>
             </div>
 
-            {/* Cedula */}
+            {/* Cedula (solo lectura) */}
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <CreditCard size={14} /> Cédula
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.cedula} 
-                  onChange={(e) => setFormData({...formData, cedula: e.target.value})} 
-                  disabled={!editMode.cedula}
-                  style={{ flex: 1, opacity: editMode.cedula ? 1 : 0.7 }}
-                />
-                {editMode.cedula ? (
-                  <button type="button" className="btn btn-primary" onClick={() => handleSave('cedula')} disabled={savingField === 'cedula'}>
-                    {savingField === 'cedula' ? <span className="spinner" style={{ width: 14, height: 14 }} /> : <CheckCircle2 size={16} />}
-                  </button>
-                ) : (
-                  <button type="button" className="btn btn-ghost" onClick={() => handleEdit('cedula')}>
-                    <Edit2 size={16} />
-                  </button>
-                )}
-              </div>
+              <input
+                type="text"
+                className="form-input"
+                value={profileData?.cedula || '—'}
+                disabled
+                style={{ opacity: 0.7, cursor: 'not-allowed' }}
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
@@ -259,11 +246,38 @@ export default function ProfileView({ section }) {
                 </div>
               </div>
             </div>
+
+            {/* Trust Level */}
+            {profileData?.trustLevel != null && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <Shield size={12} /> Nivel de Confianza
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${profileData.trustLevel}%`,
+                      height: '100%',
+                      borderRadius: 4,
+                      background: profileData.trustLevel >= 70 ? 'var(--success)' : profileData.trustLevel >= 40 ? 'var(--warning)' : 'var(--error)',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
+                  <span style={{
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    color: profileData.trustLevel >= 70 ? 'var(--success)' : profileData.trustLevel >= 40 ? 'var(--warning)' : 'var(--error)'
+                  }}>
+                    {profileData.trustLevel}%
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cambiar Contraseña */}
           <div className="glass-card">
-            <div 
+            <div
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
               onClick={() => setIsSecurityOpen(!isSecurityOpen)}
             >
@@ -272,43 +286,43 @@ export default function ProfileView({ section }) {
               </h2>
               {isSecurityOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
-            
+
             {isSecurityOpen && (
               <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
                 <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div className="form-group">
                     <label>Contraseña Actual</label>
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      value={passwords.current} 
-                      onChange={(e) => setPasswords({...passwords, current: e.target.value})} 
-                      placeholder="Obligatorio para cambiar" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwords.current}
+                      onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                      placeholder="Obligatorio para cambiar"
                     />
                   </div>
                   <div className="form-group">
                     <label>Nueva Contraseña</label>
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      value={passwords.new} 
-                      onChange={(e) => setPasswords({...passwords, new: e.target.value})} 
-                      placeholder="Mínimo 6 caracteres" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwords.new}
+                      onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                      placeholder="Mínimo 6 caracteres"
                     />
                   </div>
                   <div className="form-group">
                     <label>Confirmar Nueva Contraseña</label>
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      value={passwords.confirm} 
-                      onChange={(e) => setPasswords({...passwords, confirm: e.target.value})} 
-                      placeholder="Repite la contraseña" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwords.confirm}
+                      onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                      placeholder="Repite la contraseña"
                     />
                   </div>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary" 
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
                     style={{ marginTop: '0.5rem' }}
                     disabled={savingPass || !passwords.new || !passwords.confirm}
                   >

@@ -39,6 +39,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [resetToken, setResetToken] = useState(null);
   const mapInstanceRef = useRef(null);
 
   useEffect(() => {
@@ -64,6 +65,18 @@ export default function App() {
   }, []);
 
   useEffect(() => { if (user) setShowLogin(false); }, [user]);
+
+  // Detectar token de recuperación en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (window.location.pathname === '/reset-password' && token) {
+      setResetToken(token);
+      setShowLogin(true);
+      // Limpiar la URL sin recargar
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   // Sincronizar cambio de status del admin con el estado global
   const handleReportUpdated = (id, newStatus) => {
@@ -212,7 +225,11 @@ export default function App() {
 
       {showLogin && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <LoginPage onBack={() => setShowLogin(false)} />
+          <LoginPage
+            onBack={() => { setShowLogin(false); setResetToken(null); }}
+            initialView={resetToken ? 'reset' : undefined}
+            initialToken={resetToken || undefined}
+          />
         </div>
       )}
 
