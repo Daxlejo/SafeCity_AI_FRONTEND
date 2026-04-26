@@ -187,23 +187,35 @@ export default function MapView({
   const handleGeolocate = () => {
     if (!navigator.geolocation) return;
     setGeoLocating(true);
+
+    const successHandler = (pos) => {
+      const { latitude, longitude } = pos.coords;
+      setSelectedLocation({ lat: latitude, lng: longitude });
+      if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
+      setGeoLocating(false);
+    };
+
+    const errorHandler = (err) => {
+      console.error('Geolocation error:', err.code, err.message);
+      let msg = 'No se pudo obtener tu ubicación. ';
+      if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
+      else if (err.code === 2) msg += 'GPS no disponible. Selecciónala en el mapa.';
+      else msg += 'Tiempo agotado. Selecciónala en el mapa.';
+      alert(msg);
+      setGeoLocating(false);
+    };
+
+    // Primero intenta rápido (WiFi/IP), si falla intenta GPS preciso
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setSelectedLocation({ lat: latitude, lng: longitude });
-        if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
-        setGeoLocating(false);
+      successHandler,
+      () => {
+        navigator.geolocation.getCurrentPosition(
+          successHandler,
+          errorHandler,
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
       },
-      (err) => {
-        console.error('Geolocation error:', err.code, err.message);
-        let msg = 'No se pudo obtener tu ubicación. ';
-        if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
-        else if (err.code === 2) msg += 'GPS no disponible. Selecciónala en el mapa.';
-        else msg += 'Tiempo agotado. Selecciónala en el mapa.';
-        alert(msg);
-        setGeoLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   };
 
