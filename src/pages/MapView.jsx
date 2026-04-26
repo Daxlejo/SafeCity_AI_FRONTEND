@@ -188,34 +188,23 @@ export default function MapView({
     if (!navigator.geolocation) return;
     setGeoLocating(true);
 
-    const successHandler = (pos) => {
-      const { latitude, longitude } = pos.coords;
-      setSelectedLocation({ lat: latitude, lng: longitude });
-      if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
-      setGeoLocating(false);
-    };
-
-    const errorHandler = (err) => {
-      console.error('Geolocation error:', err.code, err.message);
-      let msg = 'No se pudo obtener tu ubicación. ';
-      if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
-      else if (err.code === 2) msg += 'GPS no disponible. Selecciónala en el mapa.';
-      else msg += 'Tiempo agotado. Selecciónala en el mapa.';
-      alert(msg);
-      setGeoLocating(false);
-    };
-
-    // Primero intenta rápido (WiFi/IP), si falla intenta GPS preciso
     navigator.geolocation.getCurrentPosition(
-      successHandler,
-      () => {
-        navigator.geolocation.getCurrentPosition(
-          successHandler,
-          errorHandler,
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-        );
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setSelectedLocation({ lat: latitude, lng: longitude });
+        if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
+        setGeoLocating(false);
       },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+      (err) => {
+        console.error('Geolocation error:', err.code, err.message);
+        let msg = 'No se pudo obtener tu ubicación. ';
+        if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
+        else if (err.code === 2) msg += 'GPS no disponible en este dispositivo.';
+        else msg += 'Tiempo agotado. Selecciónala en el mapa.';
+        alert(msg);
+        setGeoLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
   };
 
