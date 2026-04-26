@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { reportsAPI } from './services/api';
@@ -39,6 +39,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const mapInstanceRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -129,6 +130,7 @@ export default function App() {
     reportType, setReportType,
     submitting, handleSubmitReport, cancelReportMode,
     onReportClick: setSelectedReport,
+    mapInstanceRef,
   };
 
   const renderSidebarContent = () => {
@@ -218,6 +220,12 @@ export default function App() {
         <ReportDetailModal
           report={selectedReport}
           onClose={() => setSelectedReport(null)}
+          onFlyTo={(lat, lng) => {
+            setActiveTab('map');
+            setTimeout(() => {
+              if (mapInstanceRef.current) mapInstanceRef.current.flyTo([lat, lng], 16);
+            }, 200);
+          }}
         />
       )}
     </div>

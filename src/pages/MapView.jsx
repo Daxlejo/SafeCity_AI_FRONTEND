@@ -34,7 +34,7 @@ function createColoredIcon(color) {
   });
 }
 
-const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
 export default function MapView({
@@ -44,6 +44,7 @@ export default function MapView({
   reportDesc, setReportDesc, reportType, setReportType,
   submitting, handleSubmitReport, cancelReportMode,
   onReportClick,
+  mapInstanceRef,
   theme
 }) {
   const mapRef = useRef(null);
@@ -99,6 +100,9 @@ export default function MapView({
       attribution: '&copy; CARTO',
       maxZoom: 19,
     }).addTo(mapInstance.current);
+
+    // Exponer instancia del mapa al padre (App.jsx) para flyTo desde modal
+    if (mapInstanceRef) mapInstanceRef.current = mapInstance.current;
 
     mapInstance.current.on('click', (e) => {
       if (!reportModeRef.current) return;

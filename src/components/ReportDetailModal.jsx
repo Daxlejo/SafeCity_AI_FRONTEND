@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { X, MapPin, Shield, Clock, CheckCircle, XCircle, Eye, FileText, Camera } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { X, MapPin, Shield, Clock, CheckCircle, XCircle, Eye, FileText, Camera, Navigation } from 'lucide-react';
 import { uploadAPI } from '../services/api';
 
 const TYPE_LABELS = {
@@ -24,9 +25,13 @@ const STATUS_ICONS = {
   RESOLVED: Eye,
 };
 
-export default function ReportDetailModal({ report, onClose }) {
+export default function ReportDetailModal({ report, onClose, onFlyTo }) {
   const miniMapRef = useRef(null);
   const miniMapInstance = useRef(null);
+  const { theme } = useTheme();
+
+  const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
   // Mini mapa centrado en el reporte
   useEffect(() => {
@@ -41,7 +46,7 @@ export default function ReportDetailModal({ report, onClose }) {
       attributionControl: false,
     }).setView([report.latitude, report.longitude], 16);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer(theme === 'dark' ? TILE_DARK : TILE_LIGHT, {
       maxZoom: 19,
     }).addTo(miniMapInstance.current);
 
@@ -225,6 +230,25 @@ export default function ReportDetailModal({ report, onClose }) {
                 ref={miniMapRef}
                 style={{ height: 180, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid var(--border-color)' }}
               />
+              <button
+                onClick={() => {
+                  if (onFlyTo) onFlyTo(report.latitude, report.longitude);
+                  onClose();
+                }}
+                style={{
+                  width: '100%', marginTop: '0.75rem', padding: '0.6rem',
+                  background: 'var(--accent)', color: 'white', border: 'none',
+                  borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.82rem',
+                  fontWeight: 600, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '0.4rem',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => { e.target.style.opacity = '0.85'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
+              >
+                <Navigation size={14} />
+                Ver en el mapa
+              </button>
             </div>
           )}
         </div>
