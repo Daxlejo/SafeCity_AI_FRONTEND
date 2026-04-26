@@ -249,7 +249,7 @@ export default function MapView({
                   <X size={14} /> Cancelar
                 </button>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(); }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl); setPhotoFile(null); setPhotoUrl(null); }}>
                 <div className="form-group">
                   <label>Tipo de incidente</label>
                   <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>

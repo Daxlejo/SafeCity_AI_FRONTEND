@@ -89,18 +89,20 @@ export default function App() {
     setReportDesc('');
   };
 
-  const handleSubmitReport = async () => {
+  const handleSubmitReport = async (photoUrl) => {
     if (!selectedLocation) return;
     setSubmitting(true);
     try {
-      await reportsAPI.create({
+      const reportData = {
         description: reportDesc,
         incidentType: reportType,
         address: `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`,
         source: 'CITIZEN_TEXT',
         latitude: selectedLocation.lat,
         longitude: selectedLocation.lng,
-      });
+      };
+      if (photoUrl) reportData.photoUrl = photoUrl;
+      await reportsAPI.create(reportData);
       setReportDesc('');
       setSelectedLocation(null);
       setReportMode(false);
