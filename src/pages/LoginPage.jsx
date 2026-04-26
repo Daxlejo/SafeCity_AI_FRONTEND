@@ -32,7 +32,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
       } else if (view === 'forgot') {
         // Forgot password call
         await authAPI.forgotPassword(form.email);
-        setSuccess('Si el correo existe, hemos enviado un enlace/token.');
+        setSuccess('Se ha enviado un correo electrónico con las instrucciones para restablecer la contraseña.');
         setTimeout(() => setView('reset'), 2000);
       } else if (view === 'reset') {
         // Reset password call
@@ -65,15 +65,15 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
 
         <div className="auth-logo"><Shield size={32} /></div>
         <h1>
-          {view === 'register' ? 'Crear Cuenta' : 
-           view === 'forgot' ? 'Recuperar Contraseña' :
-           view === 'reset' ? 'Nueva Contraseña' : 'Iniciar Sesión'}
+          {view === 'register' ? 'Crear Cuenta' :
+            view === 'forgot' ? 'Recuperar Contraseña' :
+              view === 'reset' ? 'Nueva Contraseña' : 'Iniciar Sesión'}
         </h1>
         <p className="auth-subtitle">
-          {view === 'register' ? 'Únete a la red de seguridad ciudadana' : 
-           view === 'forgot' ? 'Ingresa tu correo para recibir instrucciones' :
-           view === 'reset' ? 'Ingresa el token recibido y tu nueva contraseña' :
-           'Plataforma de seguridad ciudadana'}
+          {view === 'register' ? 'Únete a la red de seguridad ciudadana' :
+            view === 'forgot' ? 'Ingresa tu correo para restablecer la contraseña' :
+              view === 'reset' ? 'Ingresa tu nueva contraseña' :
+                'Plataforma de seguridad ciudadana'}
         </p>
 
         {error && <div className="form-error"><AlertCircle size={16} />{error}</div>}
@@ -126,15 +126,15 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
             </div>
           )}
 
+
           {view === 'reset' && (
             <>
-              <div className="form-group">
-                <label>Token de recuperación</label>
-                <div style={{ position: 'relative' }}>
-                  <Shield size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" name="token" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Ingresa el token" value={form.token} onChange={handleChange} required />
+              {!form.token && (
+                <div className='form-error'>
+                  <AlertCircle size={16} />
+                  Enlace invalido. Solicita un nuevo correo de recuperación.
                 </div>
-              </div>
+              )}
               <div className="form-group">
                 <label>Nueva Contraseña</label>
                 <div style={{ position: 'relative' }}>
@@ -157,10 +157,10 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading && <span className="spinner" />}
-            {loading ? 'Procesando...' : 
-             view === 'register' ? 'Registrarse' : 
-             view === 'forgot' ? 'Enviar Token' :
-             view === 'reset' ? 'Actualizar Contraseña' : 'Ingresar'}
+            {loading ? 'Procesando...' :
+              view === 'register' ? 'Registrarse' :
+                view === 'forgot' ? 'Enviar Token' :
+                  view === 'reset' ? 'Actualizar Contraseña' : 'Ingresar'}
           </button>
         </form>
 
@@ -173,9 +173,9 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
         )}
 
         <div className="auth-toggle">
-          {view === 'register' ? '¿Ya tienes cuenta? ' : 
-           view === 'login' ? '¿No tienes cuenta? ' : 
-           '¿Recordaste tu contraseña? '}
+          {view === 'register' ? '¿Ya tienes cuenta? ' :
+            view === 'login' ? '¿No tienes cuenta? ' :
+              '¿Recordaste tu contraseña? '}
           <button onClick={() => { setView(view === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); }}>
             {view === 'login' ? 'Regístrate' : 'Inicia sesión'}
           </button>

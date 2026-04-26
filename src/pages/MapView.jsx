@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import useGeolocation from '../hooks/useGeolocation';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
@@ -55,10 +56,13 @@ export default function MapView({
   const reportModeRef = useRef(reportMode);
   const setSelectedLocationRef = useRef(setSelectedLocation);
 
-  const [geoLocating, setGeoLocating] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
+
+  // ═══ Hook de Geolocalización (reemplaza código GPS inline) ═══
+  const { location: geoLocation, status: geoStatus, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
+  const geoLocating = geoStatus === 'loading';
 
   // Sincronizar refs
   useEffect(() => { reportModeRef.current = reportMode; }, [reportMode]);
@@ -183,29 +187,18 @@ export default function MapView({
     };
   }, [section, setReports, setWsConnected]);
 
-  // Geolocalización automática
-  const handleGeolocate = () => {
-    if (!navigator.geolocation) return;
-    setGeoLocating(true);
+  // ═══ Reaccionar a cambios de ubicación del hook ═══
+  useEffect(() => {
+    if (geoLocation) {
+      setSelectedLocation({ lat: geoLocation.lat, lng: geoLocation.lng });
+      if (mapInstance.current) mapInstance.current.flyTo([geoLocation.lat, geoLocation.lng], 16);
+    }
+  }, [geoLocation, setSelectedLocation]);
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setSelectedLocation({ lat: latitude, lng: longitude });
-        if (mapInstance.current) mapInstance.current.flyTo([latitude, longitude], 16);
-        setGeoLocating(false);
-      },
-      (err) => {
-        console.error('Geolocation error:', err.code, err.message);
-        let msg = 'No se pudo obtener tu ubicación. ';
-        if (err.code === 1) msg += 'Permiso denegado. Habilita la ubicación en tu navegador.';
-        else if (err.code === 2) msg += 'GPS no disponible en este dispositivo.';
-        else msg += 'Tiempo agotado. Selecciónala en el mapa.';
-        alert(msg);
-        setGeoLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
+  // Función wrapper para el botón GPS
+  const handleGeolocate = () => {
+    clearError();
+    requestLocation();
   };
 
   // Subida de foto
@@ -270,6 +263,20 @@ export default function MapView({
                       GPS
                     </button>
                   </div>
+                  {/* ═══ Toast de error GPS (reemplaza alert()) ═══ */}
+                  {geoError && (
+                    <div style={{
+                      background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
+                      borderRadius: '0.4rem', padding: '0.45rem 0.6rem', fontSize: '0.73rem',
+                      color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.35rem',
+                      marginTop: '0.25rem'
+                    }}>
+                      <span style={{ flex: 1 }}>{geoError}</span>
+                      <button onClick={clearError} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
