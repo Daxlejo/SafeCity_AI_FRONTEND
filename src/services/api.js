@@ -43,6 +43,19 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (data) => api.post('/auth/register', data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
+};
+
+// ═══════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════
+
+export const usersAPI = {
+  getMe: () => api.get('/users/me'),
+  updateMe: (data) => api.put('/users/me', data),
+  changePassword: (currentPassword, newPassword) =>
+    api.put('/users/me/password', { currentPassword, newPassword }),
 };
 
 // ═══════════════════════════════════════════
@@ -51,7 +64,7 @@ export const authAPI = {
 
 export const reportsAPI = {
   getAll: (page = 0, size = 50) =>
-    api.get(`/reports?page=${page}&size=${size}&sort=reportDate,desc`),
+    api.get(`/reports?page=${page}&size=${size}&sort=reportDate&direction=DESC`),
   getById: (id) => api.get(`/reports/${id}`),
   create: (data) => api.post('/reports', data),
   update: (id, data) => api.put(`/reports/${id}`, data),
@@ -77,6 +90,8 @@ export const statsAPI = {
   getByZone: () => api.get('/stats/by-zone'),
   getTimeline: (limit = 10) => api.get(`/stats/timeline?limit=${limit}`),
   getHeatmap: () => api.get('/stats/heatmap'),
+  getDangerousZones: (days = 7, limit = 10) =>
+    api.get(`/stats/dangerous-zones?days=${days}&limit=${limit}`),
 };
 
 // ═══════════════════════════════════════════
@@ -97,6 +112,9 @@ export const notificationsAPI = {
 export const adminAPI = {
   getUsers: (page = 0, size = 20) => api.get(`/admin/users?page=${page}&size=${size}`),
   getUserById: (id) => api.get(`/admin/users/${id}`),
+  changeRole: (id, role) => api.put(`/admin/users/${id}/role?role=${role}`),
+  toggleBan: (id) => api.put(`/admin/users/${id}/ban`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   updateReportStatus: (id, status) => api.put(`/admin/reports/${id}/status?status=${status}`),
 };
 
