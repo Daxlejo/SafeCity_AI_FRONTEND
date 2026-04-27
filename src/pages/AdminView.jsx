@@ -52,7 +52,7 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
 
   const loadReports = async () => {
     try {
-      const res = await reportsAPI.getAll(0, 100);
+      const res = await adminAPI.getAllReports(0, 100);
       setReports(res.data?.content || res.data || []);
     } catch (err) { console.error('Error loading reports:', err); }
     finally { setLoadingReports(false); }

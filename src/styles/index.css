@@ -883,30 +883,232 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ═══════════════ RESPONSIVE ═══════════════ */
+/* ═══════════════ RESPONSIVE — MOBILE ═══════════════ */
 
 @media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    min-width: 100%;
-    height: 50vh;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    z-index: 1000;
-  }
-
+  /* Layout: vertical, map on top, sidebar as bottom sheet */
   .app-layout {
     flex-direction: column;
+    position: relative;
   }
 
+  /* Map fills the entire screen */
   .main-content {
-    height: 50vh;
+    width: 100%;
+    height: 100vh;
+    order: 1;
   }
 
+  /* Sidebar becomes a bottom sheet (scrollable panel) */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 100%;
+    height: 55vh;
+    max-height: 70vh;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    border-radius: 1.25rem 1.25rem 0 0;
+    z-index: 1100;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
+    transform: translateY(calc(100% - 56px));
+    transition: transform 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+    overflow: hidden;
+  }
+
+  /* Show the sheet when expanded */
+  .sidebar.mobile-expanded {
+    transform: translateY(0);
+  }
+
+  /* Pull handle indicator at top of sheet */
+  .sidebar::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--text-muted);
+    border-radius: 2px;
+    margin: 8px auto 4px;
+    opacity: 0.5;
+  }
+
+  /* Header smaller on mobile */
+  .sidebar-header {
+    padding: 0.5rem 1rem;
+  }
+
+  .sidebar-header h1 {
+    font-size: 0.95rem;
+  }
+
+  .status-line {
+    font-size: 0.65rem;
+  }
+
+  /* Nav: horizontal bottom bar style inside the panel */
+  .sidebar-nav {
+    gap: 0;
+  }
+
+  .sidebar-nav button {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.6rem;
+    gap: 0.15rem;
+  }
+
+  .sidebar-nav button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Content inside sidebar */
+  .sidebar-content {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    padding-bottom: 1.5rem;
+  }
+
+  /* Hide the sidebar toggle button on mobile */
+  .sidebar-toggle-btn {
+    display: none;
+  }
+
+  .sidebar-collapsed .sidebar {
+    margin-left: 0;
+  }
+
+  /* Glass cards: tighter padding */
+  .glass-card {
+    padding: 0.85rem;
+  }
+
+  /* Form adjustments for touch */
+  .form-group {
+    margin-bottom: 0.6rem;
+  }
+
+  .form-group label {
+    font-size: 0.78rem;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
+    min-height: 42px;
+  }
+
+  .form-textarea {
+    min-height: 60px;
+  }
+
+  /* Buttons: larger touch targets */
+  .btn {
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+    min-height: 36px;
+  }
+
+  /* Report cards */
+  .report-card {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .report-card-desc {
+    font-size: 0.8rem;
+  }
+
+  .report-card-meta {
+    font-size: 0.68rem;
+  }
+
+  /* Section headers */
+  .section-header h2 {
+    font-size: 0.88rem;
+  }
+
+  /* Stats grid */
   .stats-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.5rem;
+  }
+
+  /* Report mode banner: below the sheet */
+  .report-mode-banner {
+    top: auto;
+    bottom: 68px;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.85rem;
+  }
+
+  /* Auth page: responsive card */
+  .auth-card {
+    max-width: 100%;
+    margin: 1rem;
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .auth-card h1 {
+    font-size: 1.25rem;
+  }
+
+  /* Admin panel: single column on mobile */
+  .glass-card[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+  }
+
+  /* Map zoom controls position */
+  .leaflet-control-zoom {
+    margin-bottom: 70px !important;
+  }
+}
+
+/* ═══ Small phones (< 400px) ═══ */
+@media (max-width: 400px) {
+  .sidebar-header {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .sidebar-content {
+    padding: 0.5rem;
+  }
+
+  .sidebar-nav button {
+    font-size: 0.55rem;
+    padding: 0.4rem 0.15rem;
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .btn {
+    font-size: 0.82rem;
   }
 }

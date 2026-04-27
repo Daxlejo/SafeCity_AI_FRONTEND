@@ -40,7 +40,9 @@ export default function App() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [resetToken, setResetToken] = useState(null);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const mapInstanceRef = useRef(null);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -173,7 +175,7 @@ export default function App() {
 
   return (
     <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className="sidebar">
+      <div className={`sidebar ${mobileSheetOpen ? 'mobile-expanded' : ''}`} onClick={() => { if (isMobile && !mobileSheetOpen) setMobileSheetOpen(true); }}>
         <div className="sidebar-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h1><Shield size={20} /> SafeCity AI</h1>
@@ -223,6 +225,17 @@ export default function App() {
       >
         {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
+
+      {/* Mobile backdrop — closes the bottom sheet when tapping the map */}
+      {isMobile && mobileSheetOpen && (
+        <div
+          onClick={() => setMobileSheetOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1050,
+            background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)',
+          }}
+        />
+      )}
 
       {renderMainContent()}
 
