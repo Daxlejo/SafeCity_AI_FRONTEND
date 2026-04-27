@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
 import { uploadAPI } from '../services/api';
-import { MapPin, Send, Crosshair, Plus, X, Lock, Navigation, Camera, Clock } from 'lucide-react';
+import { MapPin, Send, Crosshair, Plus, X, Lock, Navigation, Camera } from 'lucide-react';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -59,7 +59,7 @@ export default function MapView({
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
-  const [incidentDate, setIncidentDate] = useState('');
+
 
   // ═══ Hook de Geolocalización (reemplaza código GPS inline) ═══
   const { location: geoLocation, status: geoStatus, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
@@ -232,7 +232,7 @@ export default function MapView({
                   <X size={14} /> Cancelar
                 </button>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl, incidentDate || null); setPhotoFile(null); setPhotoUrl(null); setIncidentDate(''); }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl, new Date().toISOString().slice(0, 19)); setPhotoFile(null); setPhotoUrl(null); }}>
                 <div className="form-group">
                   <label>Tipo de incidente</label>
                   <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
@@ -242,19 +242,6 @@ export default function MapView({
                 <div className="form-group">
                   <label>Descripción</label>
                   <textarea className="form-textarea" rows="3" required minLength={10} value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} placeholder="Describe el incidente (mín. 10 caracteres)..." />
-                </div>
-                <div className="form-group">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Clock size={13} /> ¿Cuándo ocurrió?
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="form-select"
-                    value={incidentDate}
-                    onChange={(e) => setIncidentDate(e.target.value)}
-                    max={new Date().toISOString().slice(0, 16)}
-                    style={{ fontSize: '0.8rem' }}
-                  />
                 </div>
                 <div className="form-group">
                   <label>Ubicación</label>
