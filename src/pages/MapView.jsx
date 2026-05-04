@@ -91,7 +91,8 @@ export default function MapView({
   onLoginClick,
   onNewReport,
   mapInstanceRef,
-  theme
+  theme,
+  isMobile
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -364,9 +365,11 @@ export default function MapView({
               </form>
             </div>
           ) : (
-            <button className="btn btn-primary btn-full" onClick={() => setReportMode(true)}>
-              <Plus size={18} /> Crear Reporte
-            </button>
+            !isMobile && (
+              <button className="btn btn-primary btn-full" onClick={() => setReportMode(true)}>
+                <Plus size={18} /> Crear Reporte
+              </button>
+            )
           )
         ) : (
           <button className="btn btn-primary btn-full guest-cta-btn" onClick={onLoginClick}>

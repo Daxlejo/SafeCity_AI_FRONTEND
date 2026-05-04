@@ -349,6 +349,7 @@ function AppContent() {
     onNewReport: handleNewReport,
     onLoginClick: () => setShowLogin(true),
     mapInstanceRef,
+    isMobile,
   };
 
   const renderSidebarContent = () => {
