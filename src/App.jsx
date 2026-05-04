@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { reportsAPI } from './services/api';
@@ -11,8 +11,12 @@ import ProfileView from './pages/ProfileView';
 import ReportDetailModal from './components/ReportDetailModal';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
-  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight
+  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X
 } from 'lucide-react';
+
+// ═══════════════════════════════════════════
+// TAB DEFINITIONS
+// ═══════════════════════════════════════════
 
 const PUBLIC_TABS = [
   { id: 'map', label: 'Mapa', icon: Map },
@@ -29,9 +33,168 @@ const ADMIN_TABS = [
   { id: 'admin', label: 'Admin', icon: ShieldCheck }
 ];
 
+// ═══════════════════════════════════════════
+// CUSTOM HOOK: useIsMobile (con resize listener)
+// ═══════════════════════════════════════════
+
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth <= breakpoint
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+// ═══════════════════════════════════════════
+// MOBILE BOTTOM SHEET (con swipe gestures)
+// ═══════════════════════════════════════════
+// Patrón Strategy: 3 snap points — peek, half, full
+// El usuario puede deslizar entre ellos con gestos táctiles
+
+const SNAP_PEEK = 0;   // ~110px visible
+const SNAP_HALF = 1;   // ~50% pantalla
+const SNAP_FULL = 2;   // ~90% pantalla
+
+function MobileBottomSheet({ snap, setSnap, children }) {
+  const sheetRef = useRef(null);
+  const startYRef = useRef(0);
+  const startSnapRef = useRef(snap);
+  const isDraggingRef = useRef(false);
+
+  // Calcular translateY según snap
+  const getTranslateY = useCallback((s) => {
+    switch (s) {
+      case SNAP_FULL: return '10%';
+      case SNAP_HALF: return '50%';
+      default: return 'calc(100% - 110px)';
+    }
+  }, []);
+
+  const handleTouchStart = useCallback((e) => {
+    // Solo aceptar drag desde la zona del handle (primeros 40px)
+    const touch = e.touches[0];
+    const rect = sheetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    if (touch.clientY < rect.top || touch.clientY > rect.top + 50) return;
+
+    isDraggingRef.current = true;
+    startYRef.current = touch.clientY;
+    startSnapRef.current = snap;
+
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = 'none';
+    }
+  }, [snap]);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDraggingRef.current || !sheetRef.current) return;
+
+    const deltaY = e.touches[0].clientY - startYRef.current;
+    const currentTop = sheetRef.current.getBoundingClientRect().top;
+    const windowH = window.innerHeight;
+
+    // Limitar el movimiento
+    const minTop = windowH * 0.1;
+    const maxTop = windowH - 110;
+    const newTop = Math.max(minTop, Math.min(maxTop, currentTop));
+
+    // Aplicar como porcentaje
+    const pct = ((newTop + deltaY - minTop) / (maxTop - minTop)) * 100;
+    const clampedPct = Math.max(0, Math.min(100, pct));
+    const translatePct = 10 + (clampedPct * 0.9);
+    sheetRef.current.style.transform = `translateY(${translatePct}%)`;
+
+    startYRef.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDraggingRef.current || !sheetRef.current) return;
+    isDraggingRef.current = false;
+
+    // Restaurar transición
+    sheetRef.current.style.transition = '';
+
+    // Determinar snap más cercano basándose en posición actual
+    const rect = sheetRef.current.getBoundingClientRect();
+    const windowH = window.innerHeight;
+    const relativeTop = rect.top / windowH;
+
+    if (relativeTop < 0.25) {
+      setSnap(SNAP_FULL);
+    } else if (relativeTop < 0.6) {
+      setSnap(SNAP_HALF);
+    } else {
+      setSnap(SNAP_PEEK);
+    }
+
+    // Limpiar el estilo inline
+    sheetRef.current.style.transform = '';
+  }, [setSnap]);
+
+  return (
+    <div
+      ref={sheetRef}
+      className={`mobile-bottom-sheet snap-${snap === SNAP_FULL ? 'full' : snap === SNAP_HALF ? 'half' : 'peek'}`}
+      style={{ transform: `translateY(${getTranslateY(snap)})` }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull handle */}
+      <div
+        className="mobile-sheet-handle"
+        onClick={() => setSnap(snap === SNAP_PEEK ? SNAP_HALF : snap === SNAP_HALF ? SNAP_FULL : SNAP_PEEK)}
+      >
+        <div className="mobile-sheet-handle-bar" />
+      </div>
+      <div className="mobile-sheet-body">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// MOBILE BOTTOM NAV BAR
+// ═══════════════════════════════════════════
+
+function MobileBottomNav({ tabs, activeTab, setActiveTab }) {
+  return (
+    <nav className="mobile-bottom-nav">
+      {tabs.map((tab) => {
+        const IconComp = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <IconComp size={22} />
+            <span>{tab.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+
+// ═══════════════════════════════════════════
+// APP PRINCIPAL
+// ═══════════════════════════════════════════
+
 export default function App() {
   const { user, loading: authLoading, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
+
   const [activeTab, setActiveTab] = useState('map');
   const [reports, setReports] = useState([]);
   const [wsConnected, setWsConnected] = useState(false);
@@ -40,12 +203,13 @@ export default function App() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [resetToken, setResetToken] = useState(null);
+  const [mobileSheetSnap, setMobileSheetSnap] = useState(SNAP_PEEK);
   const mapInstanceRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-    }, 250); // Mismo tiempo que la transición CSS
+    }, 250);
     return () => clearTimeout(timer);
   }, [isSidebarCollapsed]);
 
@@ -73,14 +237,19 @@ export default function App() {
     if (window.location.pathname === '/reset-password' && token) {
       setResetToken(token);
       setShowLogin(true);
-      // Limpiar la URL sin recargar
       window.history.replaceState({}, '', '/');
     }
   }, []);
 
   // Sincronizar cambio de status del admin con el estado global
+  // Patrón Observer: si el nuevo status es REJECTED, eliminamos el reporte
+  // del array público (coherente con el endpoint GET /reports que excluye REJECTED)
   const handleReportUpdated = (id, newStatus) => {
-    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    if (newStatus === 'REJECTED') {
+      setReports((prev) => prev.filter((r) => r.id !== id));
+    } else {
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    }
   };
 
   const cancelReportMode = () => {
@@ -89,24 +258,24 @@ export default function App() {
     setReportDesc('');
   };
 
-  const handleSubmitReport = async (photoUrl) => {
+  const handleSubmitReport = async (photoUrl, incidentDate) => {
     if (!selectedLocation) return;
     setSubmitting(true);
     try {
       const reportData = {
         description: reportDesc,
         incidentType: reportType,
-        address: `${selectedLocation.lat.toFixed(5)}, ${selectedLocation.lng.toFixed(5)}`,
+        address: '',
         source: 'CITIZEN_TEXT',
         latitude: selectedLocation.lat,
         longitude: selectedLocation.lng,
       };
       if (photoUrl) reportData.photoUrl = photoUrl;
+      if (incidentDate) reportData.incidentDate = incidentDate;
       await reportsAPI.create(reportData);
       setReportDesc('');
       setSelectedLocation(null);
       setReportMode(false);
-      // Refrescar lista de reportes
       try {
         const res = await reportsAPI.getAll();
         const data = res.data?.content || res.data || [];
@@ -170,6 +339,139 @@ export default function App() {
     }
   };
 
+  // Modales compartidos (login + detail)
+  const renderModals = () => (
+    <>
+      {showLogin && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <LoginPage
+            onBack={() => { setShowLogin(false); setResetToken(null); }}
+            initialView={resetToken ? 'reset' : undefined}
+            initialToken={resetToken || undefined}
+          />
+        </div>
+      )}
+
+      {selectedReport && (
+        <ReportDetailModal
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+          onFlyTo={(lat, lng) => {
+            setActiveTab('map');
+            setTimeout(() => {
+              if (mapInstanceRef.current) mapInstanceRef.current.flyTo([lat, lng], 16);
+            }, 200);
+          }}
+        />
+      )}
+    </>
+  );
+
+  // ═══════════════════════════════════════════
+  // MOBILE LAYOUT — Google Maps / Apple Maps style
+  // ═══════════════════════════════════════════
+
+  if (isMobile) {
+    const handleFabClick = () => {
+      if (!user) {
+        setShowLogin(true);
+        return;
+      }
+      setActiveTab('map');
+      setReportMode(true);
+      setMobileSheetSnap(SNAP_FULL);
+    };
+
+    // Cuando activa reporte, sheet = full. Cuando cancela, sheet = peek
+    const handleMobileCancelReport = () => {
+      cancelReportMode();
+      setMobileSheetSnap(SNAP_PEEK);
+    };
+
+    // Overrides para mobile
+    const mobileMapProps = {
+      ...mapProps,
+      cancelReportMode: handleMobileCancelReport,
+    };
+
+    // Contenido del bottom sheet según tab activo
+    const renderMobileSheetContent = () => {
+      switch (activeTab) {
+        case 'map': return <MapView {...mobileMapProps} section="sidebar" />;
+        case 'dashboard': return <DashboardView section="main" onReportClick={setSelectedReport} />;
+        case 'notifications': return <NotificationsView section="main" />;
+        case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
+        case 'profile': return <ProfileView section="main" />;
+        default: return null;
+      }
+    };
+
+    return (
+      <div className="mobile-layout">
+        {/* Map always fullscreen behind everything */}
+        <div className="mobile-map-container">
+          <MapView {...mobileMapProps} section="main" theme={theme} />
+        </div>
+
+        {/* Top status bar */}
+        <div className="mobile-top-bar">
+          <div className="mobile-top-left">
+            <Shield size={16} />
+            <span className="mobile-brand">SafeCity</span>
+            <div className={`live-dot ${wsConnected ? 'connected' : 'disconnected'}`} />
+          </div>
+          <div className="mobile-top-right">
+            {user ? (
+              <button onClick={logout} className="mobile-top-btn" title="Cerrar sesión">
+                <LogOut size={16} />
+              </button>
+            ) : (
+              <button onClick={() => setShowLogin(true)} className="mobile-top-btn">
+                <User size={16} />
+              </button>
+            )}
+            <button onClick={toggleTheme} className="mobile-top-btn" title={`Modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}>
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Sheet (swipeable panel) */}
+        <MobileBottomSheet snap={mobileSheetSnap} setSnap={setMobileSheetSnap}>
+          {renderMobileSheetContent()}
+        </MobileBottomSheet>
+
+        {/* FAB — Create Report (solo en tab mapa, solo si no está en reportMode) */}
+        {activeTab === 'map' && !reportMode && (
+          <button
+            className="mobile-fab"
+            onClick={handleFabClick}
+            title={user ? 'Crear reporte' : 'Inicia sesión para reportar'}
+          >
+            <Plus size={26} strokeWidth={2.5} />
+          </button>
+        )}
+
+        {/* Bottom Navigation Bar */}
+        <MobileBottomNav tabs={tabs} activeTab={activeTab} setActiveTab={(id) => {
+          setActiveTab(id);
+          // Al cambiar tab: si es mapa, peek; si es otro, half para contenido
+          if (id === 'map') {
+            setMobileSheetSnap(reportMode ? SNAP_FULL : SNAP_PEEK);
+          } else {
+            setMobileSheetSnap(SNAP_HALF);
+          }
+        }} />
+
+        {renderModals()}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // DESKTOP LAYOUT — Sidebar + Main (sin cambios)
+  // ═══════════════════════════════════════════
+
   return (
     <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="sidebar">
@@ -225,28 +527,7 @@ export default function App() {
 
       {renderMainContent()}
 
-      {showLogin && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <LoginPage
-            onBack={() => { setShowLogin(false); setResetToken(null); }}
-            initialView={resetToken ? 'reset' : undefined}
-            initialToken={resetToken || undefined}
-          />
-        </div>
-      )}
-
-      {selectedReport && (
-        <ReportDetailModal
-          report={selectedReport}
-          onClose={() => setSelectedReport(null)}
-          onFlyTo={(lat, lng) => {
-            setActiveTab('map');
-            setTimeout(() => {
-              if (mapInstanceRef.current) mapInstanceRef.current.flyTo([lat, lng], 16);
-            }, 200);
-          }}
-        />
-      )}
+      {renderModals()}
     </div>
   );
 }

@@ -60,6 +60,7 @@ export default function MapView({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
 
+
   // ═══ Hook de Geolocalización (reemplaza código GPS inline) ═══
   const { location: geoLocation, status: geoStatus, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
   const geoLocating = geoStatus === 'loading';
@@ -166,15 +167,22 @@ export default function MapView({
     if (section !== 'main') return;
     connectWebSocket(
       (newReport) => {
+        // Reporte nuevo: solo agregar si NO es REJECTED (coherente con API pública)
+        if (newReport.status === 'REJECTED') return;
         setReports((prev) => {
           const filtered = prev.filter((r) => r.id !== newReport.id);
           return [newReport, ...filtered];
         });
       },
       (updatedReport) => {
-        setReports((prev) =>
-          prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
-        );
+        // Si el reporte fue RECHAZADO, eliminarlo del array público
+        if (updatedReport.status === 'REJECTED') {
+          setReports((prev) => prev.filter((r) => r.id !== updatedReport.id));
+        } else {
+          setReports((prev) =>
+            prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+          );
+        }
       },
       (deletedId) => {
         setReports((prev) => prev.filter((r) => r.id !== deletedId));
@@ -209,7 +217,7 @@ export default function MapView({
     setUploadingPhoto(true);
     try {
       const res = await uploadAPI.uploadPhoto(file);
-      setPhotoUrl(res.data?.filename || res.data?.url || null);
+      setPhotoUrl(res.data?.photoUrl || res.data?.fileName || null);
     } catch (err) {
       console.error('Error subiendo foto:', err);
       setPhotoUrl(null);
@@ -231,7 +239,7 @@ export default function MapView({
                   <X size={14} /> Cancelar
                 </button>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl); setPhotoFile(null); setPhotoUrl(null); }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl, new Date().toISOString().slice(0, 19)); setPhotoFile(null); setPhotoUrl(null); }}>
                 <div className="form-group">
                   <label>Tipo de incidente</label>
                   <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>

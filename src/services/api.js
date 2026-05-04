@@ -116,6 +116,7 @@ export const adminAPI = {
   toggleBan: (id) => api.put(`/admin/users/${id}/ban`),
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   updateReportStatus: (id, status) => api.put(`/admin/reports/${id}/status?status=${status}`),
+  getAllReports: (page = 0, size = 100) => api.get(`/admin/reports?page=${page}&size=${size}&sort=reportDate&direction=DESC`),
 };
 
 // ═══════════════════════════════════════════

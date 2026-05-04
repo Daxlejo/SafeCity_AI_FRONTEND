@@ -87,7 +87,9 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
   const statusColor = STATUS_COLORS[report.status] || '#64748b';
   const StatusIcon = STATUS_ICONS[report.status] || Clock;
   const trustColor = report.trustScore >= 70 ? '#10b981' : report.trustScore >= 40 ? '#f59e0b' : '#ef4444';
-  const photoUrl = report.photoUrl ? uploadAPI.getPhotoUrl(report.photoUrl) : null;
+  const photoUrl = report.photoUrl
+    ? (report.photoUrl.startsWith('http') ? report.photoUrl : uploadAPI.getPhotoUrl(report.photoUrl))
+    : null;
 
   return (
     <div
@@ -155,26 +157,53 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
             </p>
           </div>
 
-          {/* Ubicación y fecha */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          {/* Ubicación y fechas */}
+          <div style={{ display: 'grid', gridTemplateColumns: report.incidentDate ? '1fr' : '1fr 1fr', gap: '0.75rem' }}>
             <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
                 <MapPin size={12} style={{ color: 'var(--accent)' }} />
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ubicación</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                {report.address || (report.latitude ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` : 'Sin ubicación')}
+                {report.address && !/^\d+\.\d+,\s*-?\d+\.\d+$/.test(report.address.trim())
+                  ? report.address
+                  : (report.latitude ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` : 'Sin ubicación')}
               </p>
             </div>
-            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                <Clock size={12} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha</span>
+            {report.incidentDate ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                      <Clock size={12} style={{ color: '#f59e0b' }} />
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ocurrió</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {new Date(report.incidentDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                      <Clock size={12} style={{ color: 'var(--accent)' }} />
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reportado</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {report.reportDate ? new Date(report.reportDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                  <Clock size={12} style={{ color: 'var(--accent)' }} />
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha</span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {report.reportDate ? new Date(report.reportDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                </p>
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                {report.reportDate ? new Date(report.reportDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
-              </p>
-            </div>
+            )}
           </div>
 
           {/* Score IA */}
