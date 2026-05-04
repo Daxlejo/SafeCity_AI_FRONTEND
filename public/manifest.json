@@ -1,0 +1,21 @@
+{
+  "name": "SafeCity AI — Seguridad Ciudadana",
+  "short_name": "SafeCity",
+  "description": "Plataforma de seguridad ciudadana inteligente para Pasto, Colombia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["safety", "utilities"],
+  "screenshots": []
+}

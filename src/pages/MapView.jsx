@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
 import { uploadAPI } from '../services/api';
-import { MapPin, Send, Crosshair, Plus, X, Lock, Navigation, Camera } from 'lucide-react';
+import { MapPin, Send, Crosshair, Plus, X, LogIn, Navigation, Camera } from 'lucide-react';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -14,26 +14,69 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
 const INCIDENT_TYPES = [
-  { value: 'ROBBERY', label: 'Robo', color: '#ef4444' },
-  { value: 'ACCIDENT', label: 'Accidente', color: '#f59e0b' },
-  { value: 'TRAFFIC', label: 'Tráfico', color: '#eab308' },
-  { value: 'TRANSIT_OP', label: 'Op. Tránsito', color: '#3b82f6' },
-  { value: 'OTHER', label: 'Otro', color: '#64748b' },
+  { value: 'ROBBERY',    label: 'Robo',        color: '#ef4444', cssVar: 'var(--robbery)' },
+  { value: 'ACCIDENT',   label: 'Accidente',   color: '#f59e0b', cssVar: 'var(--accident)' },
+  { value: 'TRAFFIC',    label: 'Tráfico',     color: '#eab308', cssVar: 'var(--traffic)' },
+  { value: 'TRANSIT_OP', label: 'Op. Tránsito', color: '#3b82f6', cssVar: 'var(--transit_op)' },
+  { value: 'OTHER',      label: 'Otro',        color: '#64748b', cssVar: 'var(--other)' },
 ];
 
 function getIncidentColor(type) {
   return INCIDENT_TYPES.find((t) => t.value === type)?.color || '#64748b';
 }
 
-function createColoredIcon(color) {
+// ─── Lucide SVG paths (static, stable across minor versions) ─────────────────
+// These are the raw <path> elements from lucide-react source for the icons we need.
+
+const LUCIDE_PATHS = {
+  // ShieldAlert — for ROBBERY
+  ShieldAlert: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>`,
+
+  // Car — for ACCIDENT
+  Car: `<path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v5a2 2 0 0 1-2 2h-1m-8 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0m8 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/>`,
+
+  // TriangleAlert — for TRAFFIC
+  TriangleAlert: `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>`,
+
+  // Shield — for TRANSIT_OP
+  Shield: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+
+  // CircleDot — for OTHER
+  CircleDot: `<circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="3"/>`,
+};
+
+const INCIDENT_ICON_MAP = {
+  ROBBERY:    LUCIDE_PATHS.ShieldAlert,
+  ACCIDENT:   LUCIDE_PATHS.Car,
+  TRAFFIC:    LUCIDE_PATHS.TriangleAlert,
+  TRANSIT_OP: LUCIDE_PATHS.Shield,
+  OTHER:      LUCIDE_PATHS.CircleDot,
+};
+
+function createIncidentIcon(type, isRecent = false) {
+  const color = getIncidentColor(type);
+  const svgPaths = INCIDENT_ICON_MAP[type] || LUCIDE_PATHS.CircleDot;
+  const pulseClass = isRecent ? 'pulse' : '';
+
+  const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+    fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    ${svgPaths}
+  </svg>`;
+
   return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="width:12px;height:12px;background:${color};border:2px solid rgba(255,255,255,0.9);border-radius:50%;box-shadow:0 0 8px ${color}80;"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -10],
+    className: 'incident-marker',
+    html: `<div class="incident-marker-inner ${pulseClass}" style="background:${color};">${svgString}</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -20],
   });
 }
+
 
 const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -45,6 +88,8 @@ export default function MapView({
   reportDesc, setReportDesc, reportType, setReportType,
   submitting, handleSubmitReport, cancelReportMode,
   onReportClick,
+  onLoginClick,
+  onNewReport,
   mapInstanceRef,
   theme
 }) {
@@ -130,11 +175,13 @@ export default function MapView({
     tileLayerRef.current.setUrl(theme === 'light' ? TILE_LIGHT : TILE_DARK);
   }, [theme, section]);
 
-  // Renderizar markers
+  // Renderizar markers — usa createIncidentIcon con SVG de Lucide por tipo
   const renderMarkers = useCallback((data) => {
     if (!mapInstance.current) return;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
+
+    const now = Date.now();
 
     data.forEach((r) => {
       if (!r.latitude || !r.longitude) return;
@@ -142,7 +189,13 @@ export default function MapView({
       const trustPercent = r.trustScore != null ? r.trustScore.toFixed(0) : '—';
       const trustColor = r.trustScore >= 60 ? '#10b981' : r.trustScore >= 40 ? '#f59e0b' : '#ef4444';
 
-      const m = L.marker([r.latitude, r.longitude], { icon: createColoredIcon(color) }).bindPopup(`
+      // Pulse animation for reports created in the last 10 minutes
+      const reportAge = r.createdAt ? now - new Date(r.createdAt).getTime() : Infinity;
+      const isRecent = reportAge < 10 * 60 * 1000;
+
+      const m = L.marker([r.latitude, r.longitude], {
+        icon: createIncidentIcon(r.incidentType, isRecent),
+      }).bindPopup(`
         <div style="font-family:Inter,sans-serif;min-width:180px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;">${r.incidentType}</span>
@@ -173,6 +226,8 @@ export default function MapView({
           const filtered = prev.filter((r) => r.id !== newReport.id);
           return [newReport, ...filtered];
         });
+        // Notify App.jsx for toast + badge counter
+        if (onNewReport) onNewReport(newReport);
       },
       (updatedReport) => {
         // Si el reporte fue RECHAZADO, eliminarlo del array público
@@ -314,10 +369,10 @@ export default function MapView({
             </button>
           )
         ) : (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '1rem' }}>
-            <Lock size={20} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem' }} />
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Inicia sesión para crear reportes</p>
-          </div>
+          <button className="btn btn-primary btn-full guest-cta-btn" onClick={onLoginClick}>
+            <LogIn size={18} />
+            Iniciar sesión o registrarse para reportar
+          </button>
         )}
 
         <div className="section-header" style={{ marginTop: '0.5rem' }}>

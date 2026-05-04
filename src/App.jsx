@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import { reportsAPI } from './services/api';
 import LoginPage from './pages/LoginPage';
 import MapView from './pages/MapView';
@@ -61,7 +62,7 @@ const SNAP_PEEK = 0;   // ~110px visible
 const SNAP_HALF = 1;   // ~50% pantalla
 const SNAP_FULL = 2;   // ~90% pantalla
 
-function MobileBottomSheet({ snap, setSnap, children }) {
+function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, showDiscoveryBadge, onSheetInteract }) {
   const sheetRef = useRef(null);
   const startYRef = useRef(0);
   const startSnapRef = useRef(snap);
@@ -70,7 +71,7 @@ function MobileBottomSheet({ snap, setSnap, children }) {
   // Calcular translateY según snap
   const getTranslateY = useCallback((s) => {
     switch (s) {
-      case SNAP_FULL: return '10%';
+      case SNAP_FULL: return '15%';
       case SNAP_HALF: return '50%';
       default: return 'calc(100% - 110px)';
     }
@@ -137,22 +138,33 @@ function MobileBottomSheet({ snap, setSnap, children }) {
     sheetRef.current.style.transform = '';
   }, [setSnap]);
 
+  const handleInteraction = useCallback((targetSnap) => {
+    if (onSheetInteract) onSheetInteract();
+    setSnap(targetSnap);
+  }, [onSheetInteract, setSnap]);
+
   return (
     <div
       ref={sheetRef}
-      className={`mobile-bottom-sheet snap-${snap === SNAP_FULL ? 'full' : snap === SNAP_HALF ? 'half' : 'peek'}`}
+      className={`mobile-bottom-sheet snap-${snap === SNAP_FULL ? 'full' : snap === SNAP_HALF ? 'half' : 'peek'}${bounceClass ? ` ${bounceClass}` : ''}`}
       style={{ transform: `translateY(${getTranslateY(snap)})` }}
-      onTouchStart={handleTouchStart}
+      onTouchStart={(e) => { if (onSheetInteract) onSheetInteract(); handleTouchStart(e); }}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Pull handle */}
       <div
         className="mobile-sheet-handle"
-        onClick={() => setSnap(snap === SNAP_PEEK ? SNAP_HALF : snap === SNAP_HALF ? SNAP_FULL : SNAP_PEEK)}
+        onClick={() => handleInteraction(snap === SNAP_PEEK ? SNAP_HALF : snap === SNAP_HALF ? SNAP_FULL : SNAP_PEEK)}
       >
         <div className="mobile-sheet-handle-bar" />
       </div>
+      {/* Discovery badge */}
+      {showDiscoveryBadge && snap === SNAP_PEEK && reportCount > 0 && (
+        <div className="sheet-discovery-badge" onClick={() => handleInteraction(SNAP_HALF)}>
+          Desliza para ver {reportCount} reportes cerca
+        </div>
+      )}
       <div className="mobile-sheet-body">
         {children}
       </div>
@@ -164,19 +176,25 @@ function MobileBottomSheet({ snap, setSnap, children }) {
 // MOBILE BOTTOM NAV BAR
 // ═══════════════════════════════════════════
 
-function MobileBottomNav({ tabs, activeTab, setActiveTab }) {
+function MobileBottomNav({ tabs, activeTab, setActiveTab, unreadCount }) {
   return (
     <nav className="mobile-bottom-nav">
       {tabs.map((tab) => {
         const IconComp = tab.icon;
         const isActive = activeTab === tab.id;
+        const showBadge = tab.id === 'notifications' && unreadCount > 0;
         return (
           <button
             key={tab.id}
             className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            <IconComp size={22} />
+            <span className="nav-badge-wrapper">
+              <IconComp size={22} />
+              {showBadge && (
+                <span className="badge-pill">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </span>
             <span>{tab.label}</span>
           </button>
         );
@@ -190,9 +208,10 @@ function MobileBottomNav({ tabs, activeTab, setActiveTab }) {
 // APP PRINCIPAL
 // ═══════════════════════════════════════════
 
-export default function App() {
+function AppContent() {
   const { user, loading: authLoading, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
   const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('map');
@@ -204,6 +223,9 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [resetToken, setResetToken] = useState(null);
   const [mobileSheetSnap, setMobileSheetSnap] = useState(SNAP_PEEK);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [hasInteractedWithSheet, setHasInteractedWithSheet] = useState(false);
+  const [showSheetBounce, setShowSheetBounce] = useState(true);
   const mapInstanceRef = useRef(null);
 
   useEffect(() => {
@@ -240,6 +262,15 @@ export default function App() {
       window.history.replaceState({}, '', '/');
     }
   }, []);
+
+  // Handle incoming WebSocket report — trigger toast + increment badge
+  const handleNewReport = useCallback((report) => {
+    setUnreadCount((prev) => prev + 1);
+    const summary = report.description
+      ? report.description.substring(0, 60) + (report.description.length > 60 ? '...' : '')
+      : `Nuevo incidente: ${report.incidentType}`;
+    showToast(`¡Nueva alerta! ${summary}`, 'alert');
+  }, [showToast]);
 
   // Sincronizar cambio de status del admin con el estado global
   // Patrón Observer: si el nuevo status es REJECTED, eliminamos el reporte
@@ -314,6 +345,8 @@ export default function App() {
     reportType, setReportType,
     submitting, handleSubmitReport, cancelReportMode,
     onReportClick: setSelectedReport,
+    onNewReport: handleNewReport,
+    onLoginClick: () => setShowLogin(true),
     mapInstanceRef,
   };
 
@@ -321,7 +354,7 @@ export default function App() {
     switch (activeTab) {
       case 'map': return <MapView {...mapProps} section="sidebar" />;
       case 'dashboard': return <DashboardView section="sidebar" />;
-      case 'notifications': return <NotificationsView section="sidebar" />;
+      case 'notifications': return <NotificationsView section="sidebar" unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'admin': return <AdminView section="sidebar" reports={reports} onReportUpdated={handleReportUpdated} />;
       case 'profile': return <ProfileView section="sidebar" />;
       default: return null;
@@ -332,7 +365,7 @@ export default function App() {
     switch (activeTab) {
       case 'map': return <MapView {...mapProps} section="main" theme={theme} />;
       case 'dashboard': return <DashboardView section="main" onReportClick={setSelectedReport} />;
-      case 'notifications': return <NotificationsView section="main" />;
+      case 'notifications': return <NotificationsView section="main" unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
       case 'profile': return <ProfileView section="main" />;
       default: return null;
@@ -437,7 +470,14 @@ export default function App() {
         </div>
 
         {/* Bottom Sheet (swipeable panel) */}
-        <MobileBottomSheet snap={mobileSheetSnap} setSnap={setMobileSheetSnap}>
+        <MobileBottomSheet
+          snap={mobileSheetSnap}
+          setSnap={setMobileSheetSnap}
+          bounceClass={showSheetBounce && !hasInteractedWithSheet ? 'sheet-bounce' : ''}
+          reportCount={reports.length}
+          showDiscoveryBadge={!hasInteractedWithSheet}
+          onSheetInteract={() => { setHasInteractedWithSheet(true); setShowSheetBounce(false); }}
+        >
           {renderMobileSheetContent()}
         </MobileBottomSheet>
 
@@ -453,7 +493,7 @@ export default function App() {
         )}
 
         {/* Bottom Navigation Bar */}
-        <MobileBottomNav tabs={tabs} activeTab={activeTab} setActiveTab={(id) => {
+        <MobileBottomNav tabs={tabs} unreadCount={unreadCount} activeTab={activeTab} setActiveTab={(id) => {
           setActiveTab(id);
           // Al cambiar tab: si es mapa, peek; si es otro, half para contenido
           if (id === 'map') {
@@ -505,9 +545,15 @@ export default function App() {
         <div className="sidebar-nav">
           {tabs.map((tab) => {
             const IconComp = tab.icon;
+            const showBadge = tab.id === 'notifications' && unreadCount > 0;
             return (
               <button key={tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setActiveTab(tab.id)}>
-                <IconComp size={18} />
+                <span className="nav-badge-wrapper">
+                  <IconComp size={18} />
+                  {showBadge && (
+                    <span className="badge-pill">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                  )}
+                </span>
                 {tab.label}
               </button>
             );
@@ -529,5 +575,14 @@ export default function App() {
 
       {renderModals()}
     </div>
+  );
+}
+
+// Default export wraps AppContent with ToastProvider
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }

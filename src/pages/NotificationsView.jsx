@@ -3,16 +3,23 @@ import { notificationsAPI } from '../services/api';
 import { Bell, BellOff, Check, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 
 const TYPE_CONFIG = {
-  ALERT: { icon: AlertTriangle, color: 'var(--warning)', bg: 'var(--warning-bg)' },
-  WARNING: { icon: AlertCircle, color: 'var(--error)', bg: 'var(--error-bg)' },
-  INFO: { icon: Info, color: 'var(--info)', bg: 'var(--info-bg)' },
+  ALERT:   { icon: AlertTriangle, color: 'var(--warning)', bg: 'var(--warning-bg)' },
+  WARNING: { icon: AlertCircle,   color: 'var(--error)',   bg: 'var(--error-bg)' },
+  INFO:    { icon: Info,          color: 'var(--info)',    bg: 'var(--info-bg)' },
 };
 
-export default function NotificationsView({ section }) {
+export default function NotificationsView({ section, unreadCount = 0, setUnreadCount }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadNotifications(); }, []);
+
+  // Reset badge when the user opens the notifications panel
+  useEffect(() => {
+    if (section === 'sidebar' && unreadCount > 0 && setUnreadCount) {
+      setUnreadCount(0);
+    }
+  }, [section, unreadCount, setUnreadCount]);
 
   const loadNotifications = async () => {
     try {
@@ -34,9 +41,7 @@ export default function NotificationsView({ section }) {
     }
   };
 
-
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const localUnread = notifications.filter((n) => !n.read).length;
 
   if (section === 'main') {
     return (
@@ -61,14 +66,16 @@ export default function NotificationsView({ section }) {
     <div className="sidebar-content">
       <div className="section-header">
         <h2>Notificaciones</h2>
-
+        {localUnread > 0 && (
+          <span style={{
+            background: 'var(--error-bg)', color: 'var(--error)',
+            borderRadius: 'var(--radius-full)', padding: '0.15rem 0.55rem',
+            fontSize: '0.7rem', fontWeight: 700,
+          }}>
+            {localUnread} sin leer
+          </span>
+        )}
       </div>
-
-      {unreadCount > 0 && (
-        <div style={{ background: 'var(--accent-glow)', borderRadius: 'var(--radius-md)', padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: 'var(--accent-hover)', fontWeight: 600 }}>
-          {unreadCount} notificación{unreadCount !== 1 ? 'es' : ''} sin leer
-        </div>
-      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {notifications.length === 0 ? (
