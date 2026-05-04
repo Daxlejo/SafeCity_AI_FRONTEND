@@ -377,7 +377,10 @@ function AppContent() {
   const renderModals = () => (
     <>
       {showLogin && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          animation: 'modal-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        }}>
           <LoginPage
             onBack={() => { setShowLogin(false); setResetToken(null); }}
             initialView={resetToken ? 'reset' : undefined}
