@@ -1293,12 +1293,6 @@ body {
   transition: opacity var(--transition-fast);
 }
 
-/* Hide content when peeked to prevent clutter */
-.mobile-bottom-sheet.snap-peek .mobile-sheet-body {
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* ── Bottom Sheet Bounce Animation (Discoverability) ── */
 
 @keyframes bottomSheetBounce {
