@@ -1340,12 +1340,13 @@ body {
   font-size: 0.82rem;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent), #818cf8);
+  background: linear-gradient(135deg, var(--accent), #818cf8) !important;
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
   transition: all var(--transition-fast);
 }
 
 .guest-cta-btn:hover {
+  background: linear-gradient(135deg, var(--accent-hover), #99a3f9) !important;
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.45);
   transform: translateY(-1px);
 }
