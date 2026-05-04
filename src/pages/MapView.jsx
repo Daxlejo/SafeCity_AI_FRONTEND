@@ -167,15 +167,22 @@ export default function MapView({
     if (section !== 'main') return;
     connectWebSocket(
       (newReport) => {
+        // Reporte nuevo: solo agregar si NO es REJECTED (coherente con API pública)
+        if (newReport.status === 'REJECTED') return;
         setReports((prev) => {
           const filtered = prev.filter((r) => r.id !== newReport.id);
           return [newReport, ...filtered];
         });
       },
       (updatedReport) => {
-        setReports((prev) =>
-          prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
-        );
+        // Si el reporte fue RECHAZADO, eliminarlo del array público
+        if (updatedReport.status === 'REJECTED') {
+          setReports((prev) => prev.filter((r) => r.id !== updatedReport.id));
+        } else {
+          setReports((prev) =>
+            prev.map((r) => (r.id === updatedReport.id ? updatedReport : r))
+          );
+        }
       },
       (deletedId) => {
         setReports((prev) => prev.filter((r) => r.id !== deletedId));
