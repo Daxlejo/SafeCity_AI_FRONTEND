@@ -1290,6 +1290,13 @@ body {
   overflow-x: hidden;
   padding: 0 1rem 1.5rem;
   -webkit-overflow-scrolling: touch;
+  transition: opacity var(--transition-fast);
+}
+
+/* Hide content when peeked to prevent clutter */
+.mobile-bottom-sheet.snap-peek .mobile-sheet-body {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ── Bottom Sheet Bounce Animation (Discoverability) ── */

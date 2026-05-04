@@ -160,9 +160,10 @@ function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, 
         <div className="mobile-sheet-handle-bar" />
       </div>
       {/* Discovery badge */}
-      {showDiscoveryBadge && snap === SNAP_PEEK && reportCount > 0 && (
+      {/* Discovery hint: solo si hay reportes reales cargados */}
+      {!!(showDiscoveryBadge && snap === SNAP_PEEK && reportCount > 0) && (
         <div className="sheet-discovery-badge" onClick={() => handleInteraction(SNAP_HALF)}>
-          Desliza para ver {reportCount} reportes cerca
+          ↑ Desliza para ver {reportCount} {reportCount === 1 ? 'reporte' : 'reportes'}
         </div>
       )}
       <div className="mobile-sheet-body">
@@ -481,12 +482,12 @@ function AppContent() {
           {renderMobileSheetContent()}
         </MobileBottomSheet>
 
-        {/* FAB — Create Report (solo en tab mapa, solo si no está en reportMode) */}
-        {activeTab === 'map' && !reportMode && (
+        {/* FAB — Crear Reporte: solo visible cuando el usuario está autenticado */}
+        {user && activeTab === 'map' && !reportMode && (
           <button
             className="mobile-fab"
             onClick={handleFabClick}
-            title={user ? 'Crear reporte' : 'Inicia sesión para reportar'}
+            title="Crear nuevo reporte"
           >
             <Plus size={26} strokeWidth={2.5} />
           </button>
