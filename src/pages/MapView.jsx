@@ -108,7 +108,7 @@ export default function MapView({
 
 
   // ═══ Hook de Geolocalización (reemplaza código GPS inline) ═══
-  const { location: geoLocation, status: geoStatus, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
+  const { location: geoLocation, status: geoStatus, errorType: geoErrorType, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
   const geoLocating = geoStatus === 'loading';
 
   // Sincronizar refs
@@ -328,7 +328,7 @@ export default function MapView({
                     </button>
                   </div>
                   {/* ═══ Toast de error GPS (reemplaza alert()) ═══ */}
-                  {geoError && (
+                    {geoError && (
                     <div style={{
                       background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
                       borderRadius: '0.4rem', padding: '0.45rem 0.6rem', fontSize: '0.73rem',
@@ -340,6 +340,15 @@ export default function MapView({
                         <X size={12} />
                       </button>
                     </div>
+                  )}
+                  {/* Fallback: input manual de dirección cuando GPS fue denegado */}
+                  {geoErrorType === 'permission_denied' && (
+                    <p style={{
+                      fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.25rem',
+                      lineHeight: 1.4, fontStyle: 'italic'
+                    }}>
+                      💡 También puedes hacer clic directamente en el mapa para marcar la ubicación del incidente.
+                    </p>
                   )}
                 </div>
                 <div className="form-group">

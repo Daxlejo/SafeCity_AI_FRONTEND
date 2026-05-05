@@ -25,7 +25,7 @@ const CACHE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutos
 
 // Mensajes de error amigables para el usuario (no técnicos)
 const ERROR_MESSAGES = {
-  permission_denied: 'Permiso de ubicación denegado. Selecciona tu ubicación en el mapa.',
+  permission_denied: 'Has denegado el acceso al GPS. Habilítalo en la configuración de tu navegador o ingresa la dirección manualmente.',
   position_unavailable: 'GPS no disponible en este dispositivo. Selecciona tu ubicación en el mapa.',
   timeout: 'Tiempo agotado obteniendo ubicación. Selecciona tu ubicación en el mapa.',
   not_supported: 'Tu navegador no soporta geolocalización. Selecciona tu ubicación en el mapa.',

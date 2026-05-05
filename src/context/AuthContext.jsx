@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { disconnectWebSocket } from '../services/websocket';
 
 const AuthContext = createContext(null);
 
@@ -40,10 +41,17 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('safecity_token');
-    localStorage.removeItem('safecity_user');
+    // Purgar absolutamente TODO el estado de sesión
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('safecity_'))
+      .forEach(key => localStorage.removeItem(key));
+    sessionStorage.clear();
+
+    // Desconectar WebSocket antes de redirigir
+    try { disconnectWebSocket(); } catch (_) { /* silent */ }
+
+    // Hard redirect: desmonta TODOS los componentes protegidos en memoria
+    window.location.href = '/';
   };
 
   const isAdmin = user?.role === 'ADMIN';

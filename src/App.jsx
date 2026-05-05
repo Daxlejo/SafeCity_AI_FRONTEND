@@ -12,7 +12,7 @@ import ProfileView from './pages/ProfileView';
 import ReportDetailModal from './components/ReportDetailModal';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
-  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X
+  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X, ArrowLeft
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════
@@ -62,11 +62,17 @@ const SNAP_PEEK = 0;   // ~110px visible
 const SNAP_HALF = 1;   // ~50% pantalla
 const SNAP_FULL = 2;   // ~90% pantalla
 
+// Drag detection threshold in px — movements under this are treated as clicks
+const DRAG_THRESHOLD = 10;
+
 function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, showDiscoveryBadge, onSheetInteract }) {
   const sheetRef = useRef(null);
   const startYRef = useRef(0);
   const startSnapRef = useRef(snap);
   const isDraggingRef = useRef(false);
+  // Drag-vs-Click detection: track cumulative vertical movement
+  const cumulativeDeltaRef = useRef(0);
+  const wasDraggedRef = useRef(false);
 
   // Calcular translateY según snap
   const getTranslateY = useCallback((s) => {
@@ -78,11 +84,12 @@ function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, 
   }, []);
 
   const handleTouchStart = useCallback((e) => {
-    // Solo aceptar drag desde la zona del handle (primeros 40px)
+    cumulativeDeltaRef.current = 0;
+    wasDraggedRef.current = false;
+
     const touch = e.touches[0];
     const rect = sheetRef.current?.getBoundingClientRect();
     if (!rect) return;
-    if (touch.clientY < rect.top || touch.clientY > rect.top + 50) return;
 
     isDraggingRef.current = true;
     startYRef.current = touch.clientY;
@@ -97,6 +104,13 @@ function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, 
     if (!isDraggingRef.current || !sheetRef.current) return;
 
     const deltaY = e.touches[0].clientY - startYRef.current;
+    cumulativeDeltaRef.current += Math.abs(deltaY);
+
+    // Mark as drag if movement exceeds threshold
+    if (cumulativeDeltaRef.current > DRAG_THRESHOLD) {
+      wasDraggedRef.current = true;
+    }
+
     const currentTop = sheetRef.current.getBoundingClientRect().top;
     const windowH = window.innerHeight;
 
@@ -136,12 +150,23 @@ function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, 
 
     // Limpiar el estilo inline
     sheetRef.current.style.transform = '';
+
+    // Reset drag flag after a brief delay so onClick handlers can read it
+    setTimeout(() => { wasDraggedRef.current = false; }, 100);
   }, [setSnap]);
 
   const handleInteraction = useCallback((targetSnap) => {
     if (onSheetInteract) onSheetInteract();
     setSnap(targetSnap);
   }, [onSheetInteract, setSnap]);
+
+  // Intercept clicks on children — prevent if user was dragging
+  const handleBodyClick = useCallback((e) => {
+    if (wasDraggedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
 
   return (
     <div
@@ -160,13 +185,12 @@ function MobileBottomSheet({ snap, setSnap, children, bounceClass, reportCount, 
         <div className="mobile-sheet-handle-bar" />
       </div>
       {/* Discovery badge */}
-      {/* Discovery hint: solo si hay reportes reales cargados */}
       {!!(showDiscoveryBadge && snap === SNAP_PEEK && reportCount > 0) && (
         <div className="sheet-discovery-badge" onClick={() => handleInteraction(SNAP_HALF)}>
           ↑ Desliza para ver {reportCount} {reportCount === 1 ? 'reporte' : 'reportes'}
         </div>
       )}
-      <div className="mobile-sheet-body">
+      <div className="mobile-sheet-body" onClickCapture={handleBodyClick}>
         {children}
       </div>
     </div>
@@ -203,6 +227,30 @@ function MobileBottomNav({ tabs, activeTab, setActiveTab, unreadCount }) {
     </nav>
   );
 }
+// ═══════════════════════════════════════════
+// MOBILE FULL-PAGE VIEW (replaces Bottom Sheet for non-map tabs)
+// ═══════════════════════════════════════════
+
+function MobileFullPageView({ title, icon: Icon, onBack, children }) {
+  return (
+    <div className="mobile-fullpage-view">
+      <div className="mobile-fullpage-header">
+        <button className="mobile-fullpage-back" onClick={onBack}>
+          <ArrowLeft size={18} />
+          <span>Mapa</span>
+        </button>
+        <h2 className="mobile-fullpage-title">
+          <Icon size={18} /> {title}
+        </h2>
+        <div style={{ width: 60 }} />
+      </div>
+      <div className="mobile-fullpage-body">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 
 
 // ═══════════════════════════════════════════
@@ -432,18 +480,6 @@ function AppContent() {
       cancelReportMode: handleMobileCancelReport,
     };
 
-    // Contenido del bottom sheet según tab activo
-    const renderMobileSheetContent = () => {
-      switch (activeTab) {
-        case 'map': return <MapView {...mobileMapProps} section="sidebar" />;
-        case 'dashboard': return <DashboardView section="main" onReportClick={setSelectedReport} />;
-        case 'notifications': return <NotificationsView section="main" />;
-        case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
-        case 'profile': return <ProfileView section="main" />;
-        default: return null;
-      }
-    };
-
     return (
       <div className="mobile-layout">
         {/* Map always fullscreen behind everything */}
@@ -474,19 +510,43 @@ function AppContent() {
           </div>
         </div>
 
-        {/* Bottom Sheet (swipeable panel) */}
-        <MobileBottomSheet
-          snap={mobileSheetSnap}
-          setSnap={setMobileSheetSnap}
-          bounceClass={showSheetBounce && !hasInteractedWithSheet ? 'sheet-bounce' : ''}
-          reportCount={reports.length}
-          showDiscoveryBadge={!hasInteractedWithSheet}
-          onSheetInteract={() => { setHasInteractedWithSheet(true); setShowSheetBounce(false); }}
-        >
-          {renderMobileSheetContent()}
-        </MobileBottomSheet>
+        {/* Bottom Sheet — SOLO para la vista del mapa (incidentes recientes) */}
+        {activeTab === 'map' && (
+          <MobileBottomSheet
+            snap={mobileSheetSnap}
+            setSnap={setMobileSheetSnap}
+            bounceClass={showSheetBounce && !hasInteractedWithSheet ? 'sheet-bounce' : ''}
+            reportCount={reports.length}
+            showDiscoveryBadge={!hasInteractedWithSheet}
+            onSheetInteract={() => { setHasInteractedWithSheet(true); setShowSheetBounce(false); }}
+          >
+            <MapView {...mobileMapProps} section="sidebar" />
+          </MobileBottomSheet>
+        )}
 
-        {/* FAB — Crear Reporte: solo visible cuando el usuario está autenticado */}
+        {/* Full-page views — reemplazan el Bottom Sheet para tabs que no son mapa */}
+        {activeTab === 'profile' && (
+          <MobileFullPageView title="Mi Perfil" icon={User} onBack={() => setActiveTab('map')}>
+            <ProfileView section="main" />
+          </MobileFullPageView>
+        )}
+        {activeTab === 'notifications' && (
+          <MobileFullPageView title="Notificaciones" icon={Bell} onBack={() => setActiveTab('map')}>
+            <NotificationsView section="main" unreadCount={unreadCount} setUnreadCount={setUnreadCount} />
+          </MobileFullPageView>
+        )}
+        {activeTab === 'dashboard' && (
+          <MobileFullPageView title="Dashboard" icon={BarChart3} onBack={() => setActiveTab('map')}>
+            <DashboardView section="main" onReportClick={setSelectedReport} />
+          </MobileFullPageView>
+        )}
+        {activeTab === 'admin' && (
+          <MobileFullPageView title="Administración" icon={ShieldCheck} onBack={() => setActiveTab('map')}>
+            <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />
+          </MobileFullPageView>
+        )}
+
+        {/* FAB — Crear Reporte: solo visible cuando el usuario está en el mapa */}
         {user && activeTab === 'map' && !reportMode && (
           <button
             className="mobile-fab"
@@ -500,11 +560,8 @@ function AppContent() {
         {/* Bottom Navigation Bar */}
         <MobileBottomNav tabs={tabs} unreadCount={unreadCount} activeTab={activeTab} setActiveTab={(id) => {
           setActiveTab(id);
-          // Al cambiar tab: si es mapa, peek; si es otro, half para contenido
           if (id === 'map') {
             setMobileSheetSnap(reportMode ? SNAP_FULL : SNAP_PEEK);
-          } else {
-            setMobileSheetSnap(SNAP_HALF);
           }
         }} />
 

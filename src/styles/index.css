@@ -1333,6 +1333,92 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Mobile Full-Page View (replaces Bottom Sheet for non-map tabs) ── */
+
+.mobile-fullpage-view {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  animation: fullpage-slide-up 0.35s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+@keyframes fullpage-slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-fullpage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+  padding-top: max(0.65rem, env(safe-area-inset-top));
+  background: rgba(10, 14, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .mobile-fullpage-header {
+  background: rgba(248, 250, 252, 0.85);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.mobile-fullpage-back {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='light'] .mobile-fullpage-back {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mobile-fullpage-back:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.mobile-fullpage-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.mobile-fullpage-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+
+.mobile-fullpage-body .main-content {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
 /* ── Guest CTA Button ── */
 
 .guest-cta-btn {
