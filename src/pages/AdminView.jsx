@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { adminAPI, reportsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import OsintConfigPanel from '../components/OsintConfigPanel';
+import OsintNewsFeed from '../components/OsintNewsFeed';
+import AdminAuditLog from '../components/AdminAuditLog';
 import {
   ShieldCheck, Users, FileText, CheckCircle, XCircle,
-  AlertTriangle, Clock, Eye, Trash2, UserCheck, Ban, Shield
+  AlertTriangle, Clock, Eye, Trash2, UserCheck, Ban, Shield,
+  Settings, Newspaper, ClipboardList
 } from 'lucide-react';
 
 const STATUS_OPTIONS = ['PENDING', 'VERIFIED', 'REJECTED', 'RESOLVED'];
@@ -131,7 +135,7 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', flexWrap: 'wrap' }}>
             <button
               className={`btn btn-sm ${activeAdminTab === 'reports' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setActiveAdminTab('reports')}
@@ -145,6 +149,27 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
               style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
               <Users size={16} /> Usuarios ({users.length})
+            </button>
+            <button
+              className={`btn btn-sm ${activeAdminTab === 'osint-config' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveAdminTab('osint-config')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Settings size={16} /> Config OSINT
+            </button>
+            <button
+              className={`btn btn-sm ${activeAdminTab === 'osint-news' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveAdminTab('osint-news')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Newspaper size={16} /> Noticias OSINT
+            </button>
+            <button
+              className={`btn btn-sm ${activeAdminTab === 'audit-log' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveAdminTab('audit-log')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <ClipboardList size={16} /> Audit Log
             </button>
           </div>
 
@@ -284,6 +309,21 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
                 </div>
               )}
             </div>
+          )}
+
+          {/* ═══ OSINT CONFIG ═══ */}
+          {activeAdminTab === 'osint-config' && (
+            <OsintConfigPanel />
+          )}
+
+          {/* ═══ OSINT NEWS ═══ */}
+          {activeAdminTab === 'osint-news' && (
+            <OsintNewsFeed />
+          )}
+
+          {/* ═══ AUDIT LOG ═══ */}
+          {activeAdminTab === 'audit-log' && (
+            <AdminAuditLog />
           )}
         </div>
       </div>

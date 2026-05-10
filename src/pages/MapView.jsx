@@ -1,10 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useGeolocation from '../hooks/useGeolocation';
+import useHeatmapData from '../hooks/useHeatmapData';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectWebSocket, disconnectWebSocket, isConnected } from '../services/websocket';
 import { uploadAPI } from '../services/api';
-import { MapPin, Send, Crosshair, Plus, X, LogIn, Navigation, Camera } from 'lucide-react';
+import { MapPin, Send, Crosshair, Plus, X, LogIn, Navigation, Camera, Flame } from 'lucide-react';
+import HeatmapLayer from '../components/HeatmapLayer';
+import DangerousZoneBanner from '../components/DangerousZoneBanner';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -92,7 +95,11 @@ export default function MapView({
   onNewReport,
   mapInstanceRef,
   theme,
-  isMobile
+  isMobile,
+  // 🔗 Agente 2 → Agente 4: toggle de mapa de calor
+  showHeatmap, setShowHeatmap,
+  // TrueScore del usuario (para modal de verificación)
+  userTrustScore,
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -106,6 +113,8 @@ export default function MapView({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
 
+  // ═══ Agente 4: Hook de datos para Heatmap y Zona Peligrosa ═══
+  const { points: heatmapPoints, dangerousZone, loading: heatmapLoading } = useHeatmapData();
 
   // ═══ Hook de Geolocalización (reemplaza código GPS inline) ═══
   const { location: geoLocation, status: geoStatus, errorType: geoErrorType, errorMessage: geoError, requestLocation, clearError } = useGeolocation();
@@ -442,9 +451,38 @@ export default function MapView({
           </button>
         </div>
       )}
+
+      {/* Agente 2: Toggle de Mapa de Calor (🔗 Agente 4 consume showHeatmap) */}
+      {setShowHeatmap && (
+        <button
+          className={`heatmap-toggle-btn ${showHeatmap ? 'active' : ''}`}
+          onClick={() => setShowHeatmap((prev) => !prev)}
+          title={showHeatmap ? 'Desactivar mapa de calor' : 'Activar mapa de calor'}
+        >
+          <Flame size={16} />
+          <span className="heatmap-toggle-label">
+            {showHeatmap ? 'Ocultar calor' : 'Mapa de calor'}
+          </span>
+        </button>
+      )}
+
       <div className="map-wrapper">
         <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
       </div>
+
+      {/* ═══ Agente 4: Capa de Mapa de Calor ═══ */}
+      <HeatmapLayer
+        map={mapInstance.current}
+        points={heatmapPoints}
+        visible={showHeatmap}
+      />
+
+      {/* ═══ Agente 4: Banner de Zona Peligrosa de la Semana ═══ */}
+      <DangerousZoneBanner
+        map={mapInstance.current}
+        zone={dangerousZone}
+        visible={showHeatmap}
+      />
     </div>
   );
 }

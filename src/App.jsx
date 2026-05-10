@@ -10,6 +10,9 @@ import NotificationsView from './pages/NotificationsView';
 import AdminView from './pages/AdminView';
 import ProfileView from './pages/ProfileView';
 import ReportDetailModal from './components/ReportDetailModal';
+import OnboardingTutorial from './components/OnboardingTutorial';
+import ReportVerificationModal from './components/ReportVerificationModal';
+import useInactivityTimer from './hooks/useInactivityTimer';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
   Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X, ArrowLeft
@@ -277,6 +280,34 @@ function AppContent() {
   const [showSheetBounce, setShowSheetBounce] = useState(true);
   const mapInstanceRef = useRef(null);
 
+  // ═══ Agente 2: Onboarding Tutorial (primer login) ═══
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const prevUserRef = useRef(null);
+
+  // Detectar primer login exitoso para mostrar tutorial
+  useEffect(() => {
+    if (user && !prevUserRef.current) {
+      // El usuario acaba de autenticarse
+      const onboardingSeen = localStorage.getItem('safecity_onboarding_seen');
+      if (onboardingSeen !== 'true') {
+        setShowOnboarding(true);
+      }
+    }
+    prevUserRef.current = user;
+  }, [user]);
+
+  // ═══ Agente 2: Heatmap toggle state (🔗 Agente 4 consume) ═══
+  const [showHeatmap, setShowHeatmap] = useState(false);
+
+  // ═══ Agente 2: Inactividad — auto-logout tras 20 min ═══
+  useInactivityTimer({
+    onTimeout: logout,
+    onWarning: () => showToast('⏳ Tu sesión cerrará pronto por inactividad', 'warning'),
+    timeoutMs: 20 * 60 * 1000,
+    warningBeforeMs: 2 * 60 * 1000,
+    enabled: !!user,
+  });
+
   useEffect(() => {
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
@@ -338,8 +369,25 @@ function AppContent() {
     setReportDesc('');
   };
 
+  // ═══ Agente 2: Estado del modal de verificación de reporte ═══
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const pendingSubmitRef = useRef(null);
+
   const handleSubmitReport = async (photoUrl, incidentDate) => {
     if (!selectedLocation) return;
+
+    // Si el usuario tiene TrueScore < 55, mostrar modal de verificación primero
+    const userTrust = user?.trustLevel ?? 50;
+    if (userTrust < 55 && !pendingSubmitRef.current) {
+      // Guardar datos pendientes y abrir modal
+      pendingSubmitRef.current = { photoUrl, incidentDate };
+      setShowVerificationModal(true);
+      return;
+    }
+
+    // Limpiar ref de pendiente
+    pendingSubmitRef.current = null;
+
     setSubmitting(true);
     try {
       const reportData = {
@@ -370,6 +418,20 @@ function AppContent() {
     }
   };
 
+  // Callback cuando el usuario confirma en el modal de verificación
+  const handleVerificationConfirm = useCallback(() => {
+    setShowVerificationModal(false);
+    const pending = pendingSubmitRef.current;
+    if (pending) {
+      handleSubmitReport(pending.photoUrl, pending.incidentDate);
+    }
+  }, []);
+
+  const handleVerificationClose = useCallback(() => {
+    setShowVerificationModal(false);
+    pendingSubmitRef.current = null;
+  }, []);
+
   if (authLoading) {
     return (
       <div className="auth-page">
@@ -398,6 +460,10 @@ function AppContent() {
     onLoginClick: () => setShowLogin(true),
     mapInstanceRef,
     isMobile,
+    // 🔗 Agente 2 → Agente 4: estado del toggle de heatmap
+    showHeatmap, setShowHeatmap,
+    // TrueScore del usuario para el modal de verificación
+    userTrustScore: user?.trustLevel ?? null,
   };
 
   const renderSidebarContent = () => {
@@ -422,7 +488,7 @@ function AppContent() {
     }
   };
 
-  // Modales compartidos (login + detail)
+  // Modales compartidos (login + detail + onboarding)
   const renderModals = () => (
     <>
       {showLogin && (
@@ -450,6 +516,19 @@ function AppContent() {
           }}
         />
       )}
+
+      {/* Agente 2: Tutorial de Onboarding */}
+      {showOnboarding && (
+        <OnboardingTutorial onComplete={() => setShowOnboarding(false)} />
+      )}
+
+      {/* Agente 2: Modal de Verificación para TrueScore < 55 */}
+      <ReportVerificationModal
+        isOpen={showVerificationModal}
+        onClose={handleVerificationClose}
+        onConfirm={handleVerificationConfirm}
+        trustScore={user?.trustLevel ?? null}
+      />
     </>
   );
 

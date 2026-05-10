@@ -45,6 +45,8 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
+  // 🔗 Agente 1 — Renovación de JWT antes de expiración
+  refreshToken: () => api.post('/auth/refresh'),
 };
 
 // ═══════════════════════════════════════════
@@ -69,6 +71,8 @@ export const reportsAPI = {
   create: (data) => api.post('/reports', data),
   update: (id, data) => api.put(`/reports/${id}`, data),
   delete: (id) => api.delete(`/reports/${id}`),
+  // 🔗 Agente 1 — Endpoint de cuota de reportes por hora
+  getQuota: () => api.get('/reports/quota'),
 };
 
 // ═══════════════════════════════════════════
@@ -92,6 +96,7 @@ export const statsAPI = {
   getHeatmap: () => api.get('/stats/heatmap'),
   getDangerousZones: (days = 7, limit = 10) =>
     api.get(`/stats/dangerous-zones?days=${days}&limit=${limit}`),
+  getDangerousZoneWeek: () => api.get('/stats/dangerous-zone-week'),
 };
 
 // ═══════════════════════════════════════════
@@ -142,5 +147,30 @@ export const uploadAPI = {
   getPhotoUrl: (filename) => `${BACKEND_URL}/api/v1/uploads/${filename}`,
 };
 
+// ═══════════════════════════════════════════
+// OSINT
+// ═══════════════════════════════════════════
+
+export const osintAPI = {
+  /** Obtiene la configuración actual del módulo OSINT (solo ADMIN) */
+  getConfig: () => api.get('/osint/config'),
+
+  /** Actualiza la configuración completa de OSINT (solo ADMIN) */
+  updateConfig: (configData) => api.put('/osint/config', configData),
+
+  /** Activa o desactiva el scheduler OSINT rápidamente (solo ADMIN) */
+  toggleEnabled: (enabled) => api.put(`/osint/config/toggle?enabled=${enabled}`),
+
+  /** Fuerza un escaneo OSINT inmediato (solo ADMIN) */
+  triggerScan: () => api.post('/osint/trigger'),
+
+  /** Obtiene noticias OSINT paginadas (público) */
+  getNews: (page = 0, size = 20) => api.get(`/osint/news?page=${page}&size=${size}`),
+
+  /** Obtiene logs de auditoría paginados (solo ADMIN) */
+  getAuditLogs: (page = 0, size = 20) => api.get(`/admin/audit-logs?page=${page}&size=${size}`),
+};
+
 export { BACKEND_URL };
 export default api;
+
