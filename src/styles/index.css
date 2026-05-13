@@ -1047,14 +1047,36 @@ body {
   background: var(--bg-primary);
 }
 
-/* Dark map tiles (Night Mode like Google Maps/Reference Image) */
+/* Remove global leaflet-tile-pane filter */
 .leaflet-tile-pane {
-  /* This mathematically transforms TILE_LIGHT to exactly match the reference image colors:
-     Base -> Deep Blue-Gray (#272737)
-     Parks -> Teal/Dark Green (#2f9e7b)
-     Water -> Deep Blue (#13527f) */
-  filter: brightness(0.7) invert(1) contrast(1.5) hue-rotate(200deg) saturate(1.5);
   transition: filter var(--transition-base);
+}
+
+/* Dark map base layer (TILE_DARK) */
+.map-base-layer {
+  /* Tints TILE_DARK to a cohesive blue-gray to match the sidebar, 
+     keeping roads dark gray and structures dark blue-gray */
+  filter: sepia(0.25) hue-rotate(190deg) contrast(1.1) brightness(0.9) saturate(1.5);
+  transition: filter var(--transition-base);
+}
+
+[data-theme='light'] .map-base-layer {
+  filter: none;
+}
+
+/* Dark map color injection layer (TILE_LIGHT) */
+.map-color-layer {
+  /* This mathematical filter crushes all beige/white land and roads to solid black, 
+     but leaves parks as vibrant green and water as vibrant blue. 
+     Using mix-blend-mode: screen adds ONLY the green and blue to the dark base above. */
+  filter: invert(1) brightness(1.5) contrast(2) hue-rotate(210deg) saturate(2);
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  transition: filter var(--transition-base);
+}
+
+[data-theme='light'] .map-color-layer {
+  display: none !important;
 }
 
 .leaflet-control-zoom {
