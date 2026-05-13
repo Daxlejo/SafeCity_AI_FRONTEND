@@ -94,6 +94,12 @@
   background: rgba(0, 0, 0, 0.2);
 }
 
+/* Dark theme map filter for Leaflet tiles (Default) */
+.leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+  transition: filter var(--transition-base);
+}
+
 [data-theme='light'] .leaflet-tile-pane {
   filter: none;
 }
@@ -319,6 +325,26 @@ body {
   flex: 1;
   height: 100vh;
   position: relative;
+}
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Efectos: Gradiente radial sutil para oscurecer los bordes del mapa (Dark mode) */
+.map-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 60%, rgba(10, 14, 26, 0.75) 100%);
+  z-index: 400; /* Leaflet tiles are 200, markers are 600 */
+}
+
+[data-theme='light'] .map-wrapper::after {
+  display: none;
 }
 
 /* ═══════════════ GLASS CARD ═══════════════ */

@@ -155,8 +155,8 @@ export default function MapView({
 
     mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([1.2136, -77.2811], 14);
 
-    const tileUrl = theme === 'light' ? TILE_LIGHT : TILE_DARK;
-    tileLayerRef.current = L.tileLayer(tileUrl, {
+    // Usamos siempre TILE_LIGHT como base para poder aplicar el filtro CSS sugerido
+    tileLayerRef.current = L.tileLayer(TILE_LIGHT, {
       attribution: '&copy; CARTO',
       maxZoom: 19,
     }).addTo(mapInstance.current);
@@ -181,8 +181,9 @@ export default function MapView({
 
   // Cambiar tiles por tema
   useEffect(() => {
-    if (section !== 'main' || !mapInstance.current || !tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(theme === 'light' ? TILE_LIGHT : TILE_DARK);
+    // No es necesario cambiar la URL de los tiles, el modo oscuro se maneja con filtros CSS
+    // en index.css sobre .leaflet-tile-pane
+    // tileLayerRef.current.setUrl(theme === 'light' ? TILE_LIGHT : TILE_DARK);
   }, [theme, section]);
 
   // Renderizar markers — usa createIncidentIcon con SVG de Lucide por tipo
