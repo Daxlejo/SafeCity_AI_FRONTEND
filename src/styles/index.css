@@ -3535,3 +3535,61 @@ body {
   background: rgba(0, 0, 0, 0.02);
 }
 
+/* ═══════════════════════════════════════════
+   UI POLISH & ANIMATIONS
+   ═══════════════════════════════════════════ */
+
+/* Skeletons */
+.skeleton {
+  background: var(--bg-glass);
+  background-image: linear-gradient(90deg, var(--bg-glass) 0px, var(--border) 40px, var(--bg-glass) 80px);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* View Transitions */
+.view-enter {
+  opacity: 0;
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Empty States Polish */
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state-container svg {
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.empty-state-container h3 {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+

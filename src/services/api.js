@@ -111,6 +111,16 @@ export const notificationsAPI = {
 };
 
 // ═══════════════════════════════════════════
+// ALERTS CONFIG
+// ═══════════════════════════════════════════
+
+export const alertsAPI = {
+  getPreferences: () => api.get('/alerts/preferences'),
+  updatePreferences: (data) => api.post('/alerts/preferences', data),
+  deletePreferences: () => api.delete('/alerts/preferences'),
+};
+
+// ═══════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════
 
@@ -166,6 +176,9 @@ export const osintAPI = {
 
   /** Obtiene noticias OSINT paginadas (público) */
   getNews: (page = 0, size = 20) => api.get(`/osint/news?page=${page}&size=${size}`),
+
+  /** Escanear noticias (Llama al script python externo mediante el backend) */
+  scan: () => api.post('/osint/scan'),
 
   /** Obtiene logs de auditoría paginados (solo ADMIN) */
   getAuditLogs: (page = 0, size = 20) => api.get(`/admin/audit-logs?page=${page}&size=${size}`),

@@ -4,7 +4,7 @@ import { usersAPI, reportsAPI } from '../services/api';
 import useReportQuota from '../hooks/useReportQuota';
 import {
   User, Mail, CreditCard, Shield, Clock, Lock, AlertCircle, CheckCircle2,
-  Edit2, ChevronDown, ChevronUp, TrendingUp, FileText, ThumbsUp,
+  Edit2, ChevronDown, ChevronUp, ChevronRight, TrendingUp, FileText, ThumbsUp,
   ThumbsDown, BarChart3, Bell, Settings, Gauge
 } from 'lucide-react';
 
@@ -36,7 +36,7 @@ function getTrustLabel(score) {
   return 'Bajo';
 }
 
-export default function ProfileView({ section }) {
+export default function ProfileView({ section, onNavigateToAlerts }) {
   const { user, logout } = useAuth();
 
   const [profileData, setProfileData] = useState(null);
@@ -412,6 +412,32 @@ export default function ProfileView({ section }) {
             />
           </div>
         </div>
+
+        {/* ═══ TARJETA 4.5: Preferencias de Alertas ═══ */}
+        {section === 'main' && onNavigateToAlerts && (
+          <div 
+            className="glass-card profile-card" 
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              transition: 'all var(--transition-fast)'
+            }} 
+            onClick={onNavigateToAlerts}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-glow)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bell size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>Preferencias de Alertas</h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, marginTop: '0.15rem' }}>Configura los incidentes de los que quieres recibir notificaciones</p>
+              </div>
+            </div>
+            <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+          </div>
+        )}
 
         {/* ═══ TARJETA 5: Seguridad ═══ */}
         <div className="glass-card profile-card profile-card-security">

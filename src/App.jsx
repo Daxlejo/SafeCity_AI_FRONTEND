@@ -9,13 +9,15 @@ import DashboardView from './pages/DashboardView';
 import NotificationsView from './pages/NotificationsView';
 import AdminView from './pages/AdminView';
 import ProfileView from './pages/ProfileView';
+import OsintView from './pages/OsintView';
+import AlertsConfigView from './pages/AlertsConfigView';
 import ReportDetailModal from './components/ReportDetailModal';
 import OnboardingTutorial from './components/OnboardingTutorial';
 import ReportVerificationModal from './components/ReportVerificationModal';
 import useInactivityTimer from './hooks/useInactivityTimer';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
-  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X, ArrowLeft
+  Sun, Moon, ShieldCheck, ChevronLeft, ChevronRight, Plus, X, ArrowLeft, Search
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════
@@ -34,7 +36,8 @@ const AUTH_TABS = [
 
 const ADMIN_TABS = [
   { id: 'dashboard', label: 'Stats', icon: BarChart3 },
-  { id: 'admin', label: 'Admin', icon: ShieldCheck }
+  { id: 'admin', label: 'Admin', icon: ShieldCheck },
+  { id: 'osint', label: 'OSINT', icon: Search }
 ];
 
 // ═══════════════════════════════════════════
@@ -472,6 +475,7 @@ function AppContent() {
       case 'dashboard': return <DashboardView section="sidebar" />;
       case 'notifications': return <NotificationsView section="sidebar" unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'admin': return <AdminView section="sidebar" reports={reports} onReportUpdated={handleReportUpdated} />;
+      case 'osint': return <OsintView section="sidebar" />;
       case 'profile': return <ProfileView section="sidebar" />;
       default: return null;
     }
@@ -483,7 +487,9 @@ function AppContent() {
       case 'dashboard': return <DashboardView section="main" onReportClick={setSelectedReport} />;
       case 'notifications': return <NotificationsView section="main" unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'admin': return <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />;
-      case 'profile': return <ProfileView section="main" />;
+      case 'osint': return <OsintView section="main" />;
+      case 'profile': return <ProfileView section="main" onNavigateToAlerts={() => setActiveTab('alerts-config')} />;
+      case 'alerts-config': return <AlertsConfigView onBack={() => setActiveTab('profile')} />;
       default: return null;
     }
   };
@@ -622,6 +628,16 @@ function AppContent() {
         {activeTab === 'admin' && (
           <MobileFullPageView title="Administración" icon={ShieldCheck} onBack={() => setActiveTab('map')}>
             <AdminView section="main" reports={reports} onReportUpdated={handleReportUpdated} />
+          </MobileFullPageView>
+        )}
+        {activeTab === 'osint' && (
+          <MobileFullPageView title="OSINT Scanner" icon={Search} onBack={() => setActiveTab('map')}>
+            <OsintView section="main" />
+          </MobileFullPageView>
+        )}
+        {activeTab === 'alerts-config' && (
+          <MobileFullPageView title="Preferencias" icon={Bell} onBack={() => setActiveTab('profile')}>
+            <AlertsConfigView onBack={() => setActiveTab('profile')} />
           </MobileFullPageView>
         )}
 
