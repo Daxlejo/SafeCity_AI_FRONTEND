@@ -90,14 +90,8 @@
 [data-theme='light'] ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.12);
 }
-[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* Dark theme map filter for Leaflet tiles (Default) */
+/* Default dark theme map filter removed, handled by dual-layer setup */
 .leaflet-tile-pane {
-  /* Carefully tuned filter to turn TILE_LIGHT into a #1a1a2e base, #262a40 buildings, #1b3322 parks, #5c7fbf water, and #6e6e6e roads */
-  filter: brightness(0.85) invert(1) contrast(1.15) hue-rotate(185deg) saturate(0.75);
   transition: filter var(--transition-base);
 }
 
@@ -1053,10 +1047,30 @@ body {
   background: var(--bg-primary);
 }
 
-/* Dark map tiles (Night Mode like Google Maps) */
+/* Dark map tiles base (Night Mode using TILE_DARK) */
 .leaflet-tile-pane {
-  filter: brightness(0.85) invert(1) contrast(1.15) hue-rotate(185deg) saturate(0.75);
-  transition: filter var(--transition-base);
+  /* No global invert needed since we use native TILE_DARK. 
+     Just tint the grayscale TILE_DARK map to a deep blue-gray. */
+  filter: sepia(0.2) hue-rotate(190deg) saturate(2.5) contrast(1.1) brightness(0.8);
+}
+
+/* The color injection layer (TILE_LIGHT) */
+.map-color-layer {
+  /* Overlays ONLY the color (green/blue) onto the dark base */
+  mix-blend-mode: color;
+  opacity: 0.85;
+  filter: saturate(2) brightness(0.9);
+}
+
+.map-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* subtle gradient and color tint for perfect #1a1a2e cohesion */
+  background: radial-gradient(circle, rgba(26, 26, 46, 0.1) 40%, rgba(10, 14, 26, 0.8) 100%);
+  mix-blend-mode: multiply;
+  z-index: 400; /* Above tiles, below markers */
 }
 
 .leaflet-control-zoom {

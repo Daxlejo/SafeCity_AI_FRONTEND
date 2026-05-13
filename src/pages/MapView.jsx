@@ -155,10 +155,16 @@ export default function MapView({
 
     mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([1.2136, -77.2811], 14);
 
-    // Usamos siempre TILE_LIGHT como base para poder aplicar el filtro CSS sugerido
-    tileLayerRef.current = L.tileLayer(TILE_LIGHT, {
+    // Usamos TILE_DARK como base para la jerarquía correcta (calles más claras que edificios)
+    tileLayerRef.current = L.tileLayer(TILE_DARK, {
       attribution: '&copy; CARTO',
       maxZoom: 19,
+    }).addTo(mapInstance.current);
+
+    // Superponemos TILE_LIGHT usando mix-blend-mode en CSS para inyectar los colores (parques verdes, agua azul)
+    L.tileLayer(TILE_LIGHT, {
+      maxZoom: 19,
+      className: 'map-color-layer'
     }).addTo(mapInstance.current);
 
     // Exponer instancia del mapa al padre (App.jsx) para flyTo desde modal
