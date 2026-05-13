@@ -1062,6 +1062,10 @@ body {
   filter: saturate(2) brightness(0.9);
 }
 
+[data-theme='light'] .map-color-layer {
+  display: none !important;
+}
+
 .map-wrapper::after {
   content: '';
   position: absolute;
@@ -1071,6 +1075,10 @@ body {
   background: radial-gradient(circle, rgba(26, 26, 46, 0.1) 40%, rgba(10, 14, 26, 0.8) 100%);
   mix-blend-mode: multiply;
   z-index: 400; /* Above tiles, below markers */
+}
+
+[data-theme='light'] .map-wrapper::after {
+  display: none !important;
 }
 
 .leaflet-control-zoom {
