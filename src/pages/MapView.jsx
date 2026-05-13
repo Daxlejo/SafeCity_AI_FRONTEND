@@ -104,7 +104,6 @@ export default function MapView({
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const tileLayerRef = useRef(null);
-  const colorLayerRef = useRef(null);
   const markersRef = useRef([]);
   const selectedMarkerRef = useRef(null);
   const reportModeRef = useRef(reportMode);
@@ -156,16 +155,10 @@ export default function MapView({
 
     mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([1.2136, -77.2811], 14);
 
-    // Usamos TILE_DARK como base en modo oscuro y TILE_LIGHT en modo claro
-    tileLayerRef.current = L.tileLayer(theme === 'light' ? TILE_LIGHT : TILE_DARK, {
+    // Usamos siempre TILE_LIGHT como base para poder aplicar el filtro CSS
+    tileLayerRef.current = L.tileLayer(TILE_LIGHT, {
       attribution: '&copy; CARTO',
       maxZoom: 19,
-    }).addTo(mapInstance.current);
-
-    // Capa de inyección de color (parques verdes, agua azul) solo para modo oscuro
-    colorLayerRef.current = L.tileLayer(TILE_LIGHT, {
-      maxZoom: 19,
-      className: 'map-color-layer'
     }).addTo(mapInstance.current);
 
     // Exponer instancia del mapa al padre (App.jsx) para flyTo desde modal
@@ -186,11 +179,10 @@ export default function MapView({
     };
   }, [section]);
 
-  // Cambiar tiles por tema dinámicamente
+  // Cambiar tiles por tema (manejado vía CSS)
   useEffect(() => {
-    if (tileLayerRef.current) {
-      tileLayerRef.current.setUrl(theme === 'light' ? TILE_LIGHT : TILE_DARK);
-    }
+    // El modo oscuro se maneja con filtros CSS en index.css sobre .leaflet-tile-pane
+    // usando TILE_LIGHT como base siempre.
   }, [theme, section]);
 
   // Renderizar markers — usa createIncidentIcon con SVG de Lucide por tipo

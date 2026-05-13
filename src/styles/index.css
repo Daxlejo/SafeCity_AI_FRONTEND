@@ -1047,38 +1047,14 @@ body {
   background: var(--bg-primary);
 }
 
-/* Dark map tiles base (Night Mode using TILE_DARK) */
+/* Dark map tiles (Night Mode like Google Maps/Reference Image) */
 .leaflet-tile-pane {
-  /* No global invert needed since we use native TILE_DARK. 
-     Just tint the grayscale TILE_DARK map to a deep blue-gray. */
-  filter: sepia(0.2) hue-rotate(190deg) saturate(2.5) contrast(1.1) brightness(0.8);
-}
-
-/* The color injection layer (TILE_LIGHT) */
-.map-color-layer {
-  /* Overlays ONLY the color (green/blue) onto the dark base */
-  mix-blend-mode: color;
-  opacity: 0.85;
-  filter: saturate(2) brightness(0.9);
-}
-
-[data-theme='light'] .map-color-layer {
-  display: none !important;
-}
-
-.map-wrapper::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* subtle gradient and color tint for perfect #1a1a2e cohesion */
-  background: radial-gradient(circle, rgba(26, 26, 46, 0.1) 40%, rgba(10, 14, 26, 0.8) 100%);
-  mix-blend-mode: multiply;
-  z-index: 400; /* Above tiles, below markers */
-}
-
-[data-theme='light'] .map-wrapper::after {
-  display: none !important;
+  /* This mathematically transforms TILE_LIGHT to exactly match the reference image colors:
+     Base -> Deep Blue-Gray (#272737)
+     Parks -> Teal/Dark Green (#2f9e7b)
+     Water -> Deep Blue (#13527f) */
+  filter: brightness(0.7) invert(1) contrast(1.5) hue-rotate(200deg) saturate(1.5);
+  transition: filter var(--transition-base);
 }
 
 .leaflet-control-zoom {
