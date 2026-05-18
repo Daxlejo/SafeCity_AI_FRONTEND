@@ -35,7 +35,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
         // Forgot password call
         await authAPI.forgotPassword(form.email);
         setSuccess('Se ha enviado un correo electrónico con las instrucciones para restablecer la contraseña.');
-        setTimeout(() => { setView('reset'); setSubmitted(false); }, 2000);
+        setTimeout(() => { setView('login'); setSubmitted(false); }, 3000);
       } else if (view === 'reset') {
         // Reset password call
         await authAPI.resetPassword(form.token, form.newPassword);
