@@ -164,12 +164,22 @@ export const osintAPI = {
   /** Fuerza un escaneo OSINT inmediato (solo ADMIN) */
   triggerScan: () => api.post('/osint/trigger'),
 
-  /** Obtiene noticias OSINT paginadas (público) */
+  /** Obtiene noticias OSINT publicadas — feed público (sin auth) */
   getNews: (page = 0, size = 20) => api.get(`/osint/news?page=${page}&size=${size}`),
+
+  /** Obtiene TODAS las noticias OSINT incluyendo ocultas — solo ADMIN */
+  getAllNewsAdmin: (page = 0, size = 50) => api.get(`/osint/news/all?page=${page}&size=${size}`),
+
+  /** Cambia visibilidad de una noticia: PUBLISHED | HIDDEN (solo ADMIN) */
+  updateNewsStatus: (id, status) => api.patch(`/osint/news/${id}/status?status=${status}`),
+
+  /** Elimina permanentemente una noticia OSINT (solo ADMIN) */
+  deleteNews: (id) => api.delete(`/osint/news/${id}`),
 
   /** Obtiene logs de auditoría paginados (solo ADMIN) */
   getAuditLogs: (page = 0, size = 20) => api.get(`/admin/audit-logs?page=${page}&size=${size}`),
 };
+
 
 export { BACKEND_URL };
 export default api;

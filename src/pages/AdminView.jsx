@@ -162,7 +162,7 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
               onClick={() => setActiveAdminTab('osint-news')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              <Newspaper size={16} /> Noticias OSINT
+              <Newspaper size={16} /> Moderación Noticias
             </button>
             <button
               className={`btn btn-sm ${activeAdminTab === 'audit-log' ? 'btn-primary' : 'btn-ghost'}`}
@@ -318,7 +318,7 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
 
           {/* ═══ OSINT NEWS ═══ */}
           {activeAdminTab === 'osint-news' && (
-            <OsintNewsFeed />
+            <OsintNewsFeed adminMode={true} />
           )}
 
           {/* ═══ AUDIT LOG ═══ */}

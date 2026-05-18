@@ -11,6 +11,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const [form, setForm] = useState({
     identifier: '', password: '', name: '', email: '', cedula: '',
@@ -23,6 +24,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setSubmitted(true);
     setLoading(true);
     try {
       if (view === 'register') {
@@ -33,7 +35,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
         // Forgot password call
         await authAPI.forgotPassword(form.email);
         setSuccess('Se ha enviado un correo electrónico con las instrucciones para restablecer la contraseña.');
-        setTimeout(() => setView('reset'), 2000);
+        setTimeout(() => { setView('reset'); setSubmitted(false); }, 2000);
       } else if (view === 'reset') {
         // Reset password call
         await authAPI.resetPassword(form.token, form.newPassword);
@@ -129,10 +131,10 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
 
           {view === 'reset' && (
             <>
-              {!form.token && (
+              {submitted && !form.token && (
                 <div className='form-error'>
                   <AlertCircle size={16} />
-                  Enlace invalido. Solicita un nuevo correo de recuperación.
+                  Enlace inválido. Solicita un nuevo correo de recuperación.
                 </div>
               )}
               <div className="form-group">
@@ -176,7 +178,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
           {view === 'register' ? '¿Ya tienes cuenta? ' :
             view === 'login' ? '¿No tienes cuenta? ' :
               '¿Recordaste tu contraseña? '}
-          <button onClick={() => { setView(view === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); }}>
+          <button onClick={() => { setView(view === 'login' ? 'register' : 'login'); setError(''); setSuccess(''); setSubmitted(false); }}>
             {view === 'login' ? 'Regístrate' : 'Inicia sesión'}
           </button>
         </div>
