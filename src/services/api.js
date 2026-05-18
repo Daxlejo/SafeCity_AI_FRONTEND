@@ -180,6 +180,16 @@ export const osintAPI = {
   getAuditLogs: (page = 0, size = 20) => api.get(`/admin/audit-logs?page=${page}&size=${size}`),
 };
 
+// ═══════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════
+
+export const alertsAPI = {
+  getPreferences: () => api.get('/alerts/preferences'),
+  updatePreferences: (data) => api.put('/alerts/preferences', data),
+};
+
+
 
 export { BACKEND_URL };
 export default api;
