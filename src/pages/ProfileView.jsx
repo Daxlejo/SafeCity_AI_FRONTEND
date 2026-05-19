@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI, reportsAPI } from '../services/api';
+import { subscribeToUserStats } from '../services/websocket';
 import useReportQuota from '../hooks/useReportQuota';
 import {
   User, Mail, CreditCard, Shield, Clock, Lock, AlertCircle, CheckCircle2,
@@ -74,6 +75,30 @@ export default function ProfileView({ section, onNavigateToAlerts }) {
       setLoading(false);
     }
   };
+
+  // Agente 1: Efecto para suscribirse a las stats en tiempo real
+  useEffect(() => {
+    let subscription = null;
+    if (user?.id) {
+      // Pequeño delay para dar tiempo a que el global websocket se conecte primero en App.jsx
+      const timer = setTimeout(() => {
+        subscription = subscribeToUserStats(user.id, (newStats) => {
+          setProfileData(prev => prev ? {
+            ...prev,
+            reportCount: newStats.reportCount,
+            approvedReports: newStats.approvedReports,
+            rejectedReports: newStats.rejectedReports,
+            trustLevel: newStats.trustLevel
+          } : prev);
+        });
+      }, 1500);
+      
+      return () => {
+        clearTimeout(timer);
+        if (subscription) subscription.unsubscribe();
+      };
+    }
+  }, [user?.id]);
 
   const handleEdit = (field) => {
     setEditMode(prev => ({ ...prev, [field]: true }));

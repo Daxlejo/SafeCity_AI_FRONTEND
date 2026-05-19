@@ -112,3 +112,28 @@ export function disconnectWebSocket() {
 export function isConnected() {
   return stompClient?.connected || false;
 }
+
+/**
+ * Agente 1: Subscribes to the user's specific stats topic.
+ * @param {string|number} userId
+ * @param {Function} callback
+ * @returns {Object|null} The subscription object, or null if not connected.
+ */
+export function subscribeToUserStats(userId, callback) {
+  if (!stompClient || !stompClient.connected) {
+    console.warn('[WebSocket] Cannot subscribe to user stats, STOMP client is not connected.');
+    return null;
+  }
+  
+  const topic = `/topic/user/${userId}/stats`;
+  console.info(`[WebSocket] Subscribing to user stats: ${topic}`);
+  
+  return stompClient.subscribe(topic, (message) => {
+    try {
+      const stats = JSON.parse(message.body);
+      callback(stats);
+    } catch (err) {
+      console.error('[WebSocket] Error parsing user stats message:', err);
+    }
+  });
+}

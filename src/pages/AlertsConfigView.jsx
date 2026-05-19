@@ -21,24 +21,21 @@ export default function AlertsConfigView({ onBack }) {
     const loadPreferences = async () => {
       try {
         const res = await alertsAPI.getPreferences();
-        // Asumiendo que res.data es un array de tipos activados o un objeto map
-        const prefs = res.data || {};
-        // Convert array to object map if needed
-        const stateMap = Array.isArray(prefs) 
-          ? prefs.reduce((acc, val) => ({ ...acc, [val]: true }), {})
-          : prefs;
-          
+        // El backend devuelve List<AlertPreferenceDTO>: [{id, incidentType, enabled}, ...]
+        // Construimos un mapa: { [incidentType]: { id, enabled } } para lookup rápido
+        const prefs = res.data || [];
+        const stateMap = Array.isArray(prefs)
+          ? prefs.reduce((acc, pref) => ({
+              ...acc,
+              [pref.incidentType]: { id: pref.id, enabled: pref.enabled ?? true }
+            }), {})
+          : {};
+
         setPreferences(stateMap);
       } catch (err) {
         console.error('Error fetching preferences:', err);
-        // Fallback a un estado inicial si falla (o si no existe aún)
-        setPreferences({
-          ROBBERY: true,
-          ACCIDENT: true,
-          TRAFFIC: false,
-          TRANSIT_OP: false,
-          OTHER: false
-        });
+        // Fallback: todas desactivadas si falla la carga
+        setPreferences({});
       } finally {
         setLoading(false);
       }
@@ -47,16 +44,29 @@ export default function AlertsConfigView({ onBack }) {
   }, []);
 
   const handleToggle = (typeId) => {
-    setPreferences(prev => ({ ...prev, [typeId]: !prev[typeId] }));
+    setPreferences(prev => {
+      const current = prev[typeId];
+      // Si ya existe como objeto, invertimos el enabled; si no existe, creamos entrada
+      if (current && typeof current === 'object') {
+        return { ...prev, [typeId]: { ...current, enabled: !current.enabled } };
+      }
+      return { ...prev, [typeId]: { enabled: true } };
+    });
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Transform preferences map to the format expected by the backend
-      // Assuming it expects an array of active types or an object map
-      const activeTypes = Object.keys(preferences).filter(key => preferences[key]);
-      await alertsAPI.updatePreferences({ types: activeTypes });
+      // Construir array de { incidentType, enabled } para TODOS los tipos configurados.
+      // Los tipos no presentes en el mapa se envían como disabled para limpiar preferencias huérfanas.
+      const preferencesArray = ALERT_TYPES.map((type) => {
+        const pref = preferences[type.id];
+        const enabled = pref && typeof pref === 'object' ? pref.enabled : false;
+        return { incidentType: type.id, enabled };
+      });
+
+      // El backend hace upsert por (userId, incidentType), así que enviamos todos en paralelo.
+      await alertsAPI.saveAll(preferencesArray);
       showToast('Preferencias guardadas correctamente', 'success');
     } catch (err) {
       console.error('Error saving preferences:', err);
@@ -89,7 +99,9 @@ export default function AlertsConfigView({ onBack }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
           {ALERT_TYPES.map((type) => {
             const IconComp = type.icon;
-            const isChecked = !!preferences[type.id];
+            const pref = preferences[type.id];
+            // El estado puede ser un objeto {id, enabled} o undefined si nunca se guardó
+            const isChecked = pref && typeof pref === 'object' ? pref.enabled : false;
             
             return (
               <div 

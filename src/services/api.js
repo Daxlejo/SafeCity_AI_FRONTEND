@@ -185,8 +185,31 @@ export const osintAPI = {
 // ═══════════════════════════════════════════
 
 export const alertsAPI = {
+  /** Obtiene todas las preferencias del usuario autenticado */
   getPreferences: () => api.get('/alerts/preferences'),
-  updatePreferences: (data) => api.put('/alerts/preferences', data),
+
+  /**
+   * Crea o actualiza una preferencia individual.
+   * El backend hace upsert por (userId, incidentType).
+   */
+  savePreference: (incidentType, enabled) =>
+    api.post('/alerts/preferences', { incidentType, enabled }),
+
+  /**
+   * Elimina una preferencia por su ID.
+   */
+  deletePreference: (id) => api.delete(`/alerts/preferences/${id}`),
+
+  /**
+   * Helper de conveniencia: guarda todas las preferencias en paralelo.
+   * Recibe un array de { incidentType, enabled }.
+   */
+  saveAll: (preferencesArray) =>
+    Promise.all(
+      preferencesArray.map(({ incidentType, enabled }) =>
+        api.post('/alerts/preferences', { incidentType, enabled })
+      )
+    ),
 };
 
 
