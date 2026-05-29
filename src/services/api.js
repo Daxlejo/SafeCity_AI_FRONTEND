@@ -73,6 +73,7 @@ export const reportsAPI = {
   delete: (id) => api.delete(`/reports/${id}`),
   // 🔗 Agente 1 — Endpoint de cuota de reportes por hora
   getQuota: () => api.get('/reports/quota'),
+  getHistory: (page = 0, size = 50) => api.get(`/reports/history?page=${page}&size=${size}&sort=reportDate&direction=DESC`),
 };
 
 // ═══════════════════════════════════════════
@@ -122,6 +123,8 @@ export const adminAPI = {
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   updateReportStatus: (id, status) => api.put(`/admin/reports/${id}/status?status=${status}`),
   getAllReports: (page = 0, size = 100) => api.get(`/admin/reports?page=${page}&size=${size}&sort=reportDate&direction=DESC`),
+  getExpirationConfigs: () => api.get('/admin/expiration-configs'),
+  updateExpirationConfig: (type, hours) => api.put(`/admin/expiration-configs/${type}?hours=${hours}`),
 };
 
 // ═══════════════════════════════════════════

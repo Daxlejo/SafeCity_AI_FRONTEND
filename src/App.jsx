@@ -331,8 +331,8 @@ function AppContent() {
       .then((res) => {
         const data = res.data?.content || res.data || [];
         const all = Array.isArray(data) ? data : [];
-        // Reportes PENDING solo son visibles para administradores
-        setReports(isAdmin ? all : all.filter((r) => r.status !== 'PENDING'));
+        // Reportes PENDING y EXPIRED solo son visibles para administradores
+        setReports(isAdmin ? all : all.filter((r) => r.status !== 'PENDING' && r.status !== 'EXPIRED'));
       })
       .catch((err) => console.error('Error fetching reports:', err));
   }, [user, isAdmin]);
@@ -411,8 +411,8 @@ function AppContent() {
       try {
         const res = await reportsAPI.getAll();
         const data = res.data?.content || res.data || [];
-        // Mantener filtro PENDING para usuarios no-admin tras refrescar
-        setReports(isAdmin ? (Array.isArray(data) ? data : []) : (Array.isArray(data) ? data : []).filter((r) => r.status !== 'PENDING'));
+        // Mantener filtro PENDING y EXPIRED para usuarios no-admin tras refrescar
+        setReports(isAdmin ? (Array.isArray(data) ? data : []) : (Array.isArray(data) ? data : []).filter((r) => r.status !== 'PENDING' && r.status !== 'EXPIRED'));
       } catch (_) { /* ignorar error de refresh */ }
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Error desconocido';

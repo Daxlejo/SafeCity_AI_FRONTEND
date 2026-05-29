@@ -4,15 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import OsintConfigPanel from '../components/OsintConfigPanel';
 import OsintNewsFeed from '../components/OsintNewsFeed';
 import AdminAuditLog from '../components/AdminAuditLog';
+import ExpirationConfigPanel from '../components/ExpirationConfigPanel';
 import {
   ShieldCheck, Users, FileText, CheckCircle, XCircle,
   AlertTriangle, Clock, Eye, Trash2, UserCheck, Ban, Shield,
   Settings, Newspaper, ClipboardList
 } from 'lucide-react';
 
-const STATUS_OPTIONS = ['PENDING', 'VERIFIED', 'REJECTED', 'RESOLVED'];
-const STATUS_LABELS = { PENDING: 'En Revisión', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto' };
-const STATUS_COLORS = { PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1' };
+const STATUS_OPTIONS = ['PENDING', 'VERIFIED', 'REJECTED', 'RESOLVED', 'EXPIRED'];
+const STATUS_LABELS = { PENDING: 'En Revisión', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto', EXPIRED: 'Expirado' };
+const STATUS_COLORS = { PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1', EXPIRED: '#9ca3af' };
 const TYPE_LABELS = { ROBBERY: 'Robo / Hurto', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Operativo de Tránsito', OTHER: 'Otro' };
 const ROLE_OPTIONS = ['CITIZEN', 'ADMIN'];
 
@@ -171,6 +172,13 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
             >
               <ClipboardList size={16} /> Audit Log
             </button>
+            <button
+              className={`btn btn-sm ${activeAdminTab === 'expiration' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveAdminTab('expiration')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Clock size={16} /> Expiración
+            </button>
           </div>
 
           {/* ═══ REPORTS TABLE ═══ */}
@@ -324,6 +332,11 @@ export default function AdminView({ section, reports: globalReports, onReportUpd
           {/* ═══ AUDIT LOG ═══ */}
           {activeAdminTab === 'audit-log' && (
             <AdminAuditLog />
+          )}
+
+          {/* ═══ EXPIRATION CONFIG ═══ */}
+          {activeAdminTab === 'expiration' && (
+            <ExpirationConfigPanel />
           )}
         </div>
       </div>

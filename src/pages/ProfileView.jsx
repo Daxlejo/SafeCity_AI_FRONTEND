@@ -7,8 +7,9 @@ import useReportQuota from '../hooks/useReportQuota';
 import {
   User, Mail, CreditCard, Shield, Clock, Lock, AlertCircle, CheckCircle2,
   Edit2, ChevronDown, ChevronUp, ChevronRight, TrendingUp, FileText, ThumbsUp,
-  ThumbsDown, BarChart3, Bell, Settings, Gauge
+  ThumbsDown, BarChart3, Bell, Settings, Gauge, History, MapPin
 } from 'lucide-react';
+import { translateType, translateStatus } from '../services/dictionary';
 
 // ═══════════════════════════════════════════
 // COMPONENTE: ProfileView (Rediseñado — Agente 2)
@@ -54,12 +55,36 @@ export default function ProfileView({ section, onNavigateToAlerts }) {
   const [savingPass, setSavingPass] = useState(false);
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
 
+  // Agente 3: Historial de reportes
+  const [historyReports, setHistoryReports] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   // 🔗 Agente 1 — Cuota de reportes
   const { quota, loading: quotaLoading } = useReportQuota(!!user);
 
   useEffect(() => {
     loadProfile();
   }, []);
+
+  // Agente 3: Cargar historial cuando se expande
+  useEffect(() => {
+    if (isHistoryOpen && historyReports.length === 0) {
+      loadHistory();
+    }
+  }, [isHistoryOpen]);
+
+  const loadHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const res = await reportsAPI.getHistory(0, 50);
+      setHistoryReports(res.data?.content || res.data || []);
+    } catch (err) {
+      console.error('Error loading report history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -365,6 +390,84 @@ export default function ProfileView({ section, onNavigateToAlerts }) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ═══ TARJETA 3.5: Historial de Reportes (Agente 3) ═══ */}
+        <div className="glass-card profile-card">
+          <div
+            className="profile-card-title profile-card-title-toggle"
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <History size={18} style={{ color: 'var(--accent)' }} />
+              <h2>Mi Historial de Reportes</h2>
+            </div>
+            {isHistoryOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+
+          {isHistoryOpen && (
+            <div style={{ marginTop: '1rem' }}>
+              {historyLoading ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <span className="spinner" style={{ width: 24, height: 24 }} />
+                </div>
+              ) : historyReports.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>
+                  Aún no has enviado ningún reporte.
+                </p>
+              ) : (
+                <div style={{ display: 'grid', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
+                  {historyReports.map((r) => {
+                    const statusColor = { PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1', EXPIRED: '#9ca3af' }[r.status] || '#64748b';
+                    return (
+                      <div key={r.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '1rem',
+                        padding: '0.75rem 1rem', background: 'var(--bg-secondary)',
+                        borderRadius: '8px', border: '1px solid var(--border-color)',
+                        borderLeft: `3px solid ${statusColor}`
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <span style={{
+                              fontSize: '0.65rem', padding: '0.15rem 0.5rem',
+                              borderRadius: '100px', fontWeight: 600,
+                              background: `${statusColor}20`, color: statusColor
+                            }}>
+                              {translateStatus(r.status)}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              {translateType(r.incidentType?.toString())}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.description || 'Sin descripción'}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                            {r.address && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <MapPin size={10} /> {r.address}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Clock size={10} /> {r.reportDate ? new Date(r.reportDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </span>
+                          </div>
+                        </div>
+                        {r.trustScore != null && (
+                          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: r.trustScore >= 60 ? 'var(--success)' : 'var(--error)' }}>
+                              {Math.round(r.trustScore)}
+                            </span>
+                            <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', margin: 0 }}>Score</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ═══ TARJETA 4: Información Personal Editable ═══ */}

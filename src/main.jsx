@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import App from './App';
 import './styles/index.css';
+import './styles/dynamic-form.css';
 
 // ─── Service Worker Registration (PWA) ──────────────────────────────────────
 // Registers the SW only in production to avoid caching issues during development.
