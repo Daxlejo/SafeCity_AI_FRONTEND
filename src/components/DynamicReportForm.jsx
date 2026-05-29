@@ -181,15 +181,25 @@ export default function DynamicReportForm({
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    e.preventDefault(); // LA LÍNEA SAGRADA: Evita que la página se recargue y borre todo
     if (!selectedLocation || !title.trim()) return;
 
-    // Construir el payload JSON estructurado
+    // Validación de longitud en el Front
+    const cleanNotes = notes.trim();
+    if (cleanNotes.length < 30 || cleanNotes.length > 200) {
+      alert("La descripción (notas adicionales) del reporte debe tener entre 30 y 200 caracteres.");
+      return;
+    }
+
+    // Construir un payload JSON unificado y ultra-robusto (compatible con cualquier backend)
     const structuredData = {
       title: title.trim(),
-      notes: notes.trim() || null,
+      description: cleanNotes || null,
+      notes: cleanNotes || null,
       incidentType: reportType,
-      dynamicFields: { ...dynamicData },
+      type: reportType,
+      latitude: selectedLocation.lat,
+      longitude: selectedLocation.lng,
       location: {
         lat: selectedLocation.lat,
         lng: selectedLocation.lng,
@@ -198,9 +208,14 @@ export default function DynamicReportForm({
     };
 
     // Limpiar campos dinámicos vacíos
-    Object.keys(structuredData.dynamicFields).forEach(key => {
-      if (!structuredData.dynamicFields[key] && structuredData.dynamicFields[key] !== 0) {
-        delete structuredData.dynamicFields[key];
+    Object.keys(dynamicData).forEach(key => {
+      if (!dynamicData[key] && dynamicData[key] !== 0) {
+        // No añadir campos vacíos
+      } else {
+        if (!structuredData.dynamicFields) {
+          structuredData.dynamicFields = {};
+        }
+        structuredData.dynamicFields[key] = dynamicData[key];
       }
     });
 

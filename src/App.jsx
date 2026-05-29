@@ -377,8 +377,9 @@ function AppContent() {
   };
 
   const handleSubmitReport = async (structuredData, photoUrl) => {
+    if (isSubmitting) return;
     if (!selectedLocation) return;
-    setIsSubmitting(true);
+    setIsSubmitting(true); // Bloquea el botón para evitar doble clic
 
     try {
       const reportData = {
@@ -387,21 +388,28 @@ function AppContent() {
       };
       if (photoUrl) reportData.photoUrl = photoUrl;
       
-      await reportsAPI.create(reportData);
+      // Petición directa al backend utilizando el servicio unificado
+      const response = await reportsAPI.create(reportData);
       
-      setReportMode(false);
-      setSelectedLocation(null);
-      try {
+      if (response.status === 201 || response.status === 200 || response.data) {
+        // 1. Apagamos el modo de reporte SÓLO si el backend respondió con éxito
+        setReportMode(false); 
+        setSelectedLocation(null);
+        
+        // 2. Refrescar los reportes del mapa de forma inmediata
         const res = await reportsAPI.getAll();
         const data = res.data?.content || res.data || [];
-        // Mantener filtro PENDING y EXPIRED para usuarios no-admin tras refrescar
         setReports(isAdmin ? (Array.isArray(data) ? data : []) : (Array.isArray(data) ? data : []).filter((r) => r.status !== 'PENDING' && r.status !== 'EXPIRED'));
-      } catch (_) { /* ignorar error de refresh */ }
-    } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Error desconocido';
-      alert(`Error al crear reporte: ${msg}`);
-      console.error('Error creating report:', err.response?.data || err);
+        
+        alert("Reporte subido con éxito a la base de datos.");
+      }
+    } catch (error) {
+      console.error("Error crítico en el backend/IA:", error);
+      // Captura el mensaje real del por qué el backend te lo rechazó
+      const backendMessage = error.response?.data?.message || error.response?.data?.error || error.message || "Los campos ingresados no son válidos.";
+      alert(`Rechazado por el servidor: ${backendMessage}`);
     } finally {
+      // SE EJECUTA SIEMPRE: Si falla, libera el botón para que el usuario corrija
       setIsSubmitting(false);
     }
   };
