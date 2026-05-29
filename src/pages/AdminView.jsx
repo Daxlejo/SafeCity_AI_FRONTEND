@@ -11,9 +11,9 @@ import {
 } from 'lucide-react';
 
 const STATUS_OPTIONS = ['PENDING', 'VERIFIED', 'REJECTED', 'RESOLVED'];
-const STATUS_LABELS = { PENDING: 'Pendiente', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto' };
+const STATUS_LABELS = { PENDING: 'En Revisión', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto' };
 const STATUS_COLORS = { PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1' };
-const TYPE_LABELS = { ROBBERY: 'Robo', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Op. Tránsito', OTHER: 'Otro' };
+const TYPE_LABELS = { ROBBERY: 'Robo / Hurto', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Operativo de Tránsito', OTHER: 'Otro' };
 const ROLE_OPTIONS = ['CITIZEN', 'ADMIN'];
 
 export default function AdminView({ section, reports: globalReports, onReportUpdated }) {

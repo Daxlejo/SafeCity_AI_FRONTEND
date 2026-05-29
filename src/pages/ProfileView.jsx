@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI, reportsAPI } from '../services/api';
+import { hashPassword } from '../utils/hashPassword';
 import { subscribeToUserStats } from '../services/websocket';
 import useReportQuota from '../hooks/useReportQuota';
 import {
@@ -151,7 +152,9 @@ export default function ProfileView({ section, onNavigateToAlerts }) {
 
     setSavingPass(true);
     try {
-      await usersAPI.changePassword(passwords.current, passwords.new);
+      const hashedCurrent = await hashPassword(passwords.current);
+      const hashedNew = await hashPassword(passwords.new);
+      await usersAPI.changePassword(hashedCurrent, hashedNew);
       setSuccess('Contraseña actualizada correctamente.');
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (err) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { authAPI } from '../services/api';
+import { hashPassword } from '../utils/hashPassword';
 import { Shield, AlertCircle, Mail, Lock, User, CreditCard, Sun, Moon, ArrowLeft } from 'lucide-react';
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -48,13 +49,6 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
     if (!/[0-9]/.test(e.key)) {
       e.preventDefault();
     }
-  };
-
-  const hashPassword = async (pwd) => {
-    const msgBuffer = new TextEncoder().encode(pwd);
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
   const handleSubmit = async (e) => {

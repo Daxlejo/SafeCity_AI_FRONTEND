@@ -12,6 +12,13 @@ const TYPE_COLORS = {
 const STATUS_COLORS = {
   PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1'
 };
+const TYPE_LABELS = {
+  ROBBERY: 'Robo / Hurto', ACCIDENT: 'Accidente de Tránsito', TRAFFIC: 'Congestión Vial',
+  TRANSIT_OP: 'Operativo de Tránsito', OTHER: 'Otro Incidente'
+};
+const STATUS_LABELS = {
+  PENDING: 'En Revisión', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto'
+};
 const STATUS_ICONS = {
   PENDING: Clock,
   VERIFIED: CheckCircle,

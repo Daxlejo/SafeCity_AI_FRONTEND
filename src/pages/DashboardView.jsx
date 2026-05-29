@@ -6,7 +6,7 @@ import {
   BarChart3, TrendingUp, AlertTriangle, Shield, Activity
 } from 'lucide-react';
 
-const TYPE_LABELS = { ROBBERY: 'Robo', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Op. Tránsito', OTHER: 'Otro' };
+const TYPE_LABELS = { ROBBERY: 'Robo / Hurto', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico', TRANSIT_OP: 'Operativo de Tránsito', OTHER: 'Otro' };
 const TYPE_COLORS = { ROBBERY: '#ef4444', ACCIDENT: '#f59e0b', TRAFFIC: '#eab308', TRANSIT_OP: '#3b82f6', OTHER: '#64748b' };
 const RISK_COLORS = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#10b981' };
 const RISK_LABELS = { HIGH: 'Alto', MEDIUM: 'Medio', LOW: 'Bajo' };
@@ -96,7 +96,7 @@ export default function DashboardView({ section, onReportClick }) {
           {/* ═══ Stats Cards ═══ */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
             <StatCard icon={<FileText size={20} />} value={stats?.totalReports || 0} label="Total Reportes" gradient="linear-gradient(135deg, #6366f1, #8b5cf6)" />
-            <StatCard icon={<Clock size={20} />} value={stats?.pendingReports || 0} label="Pendientes" gradient="linear-gradient(135deg, #f59e0b, #f97316)" />
+            <StatCard icon={<Clock size={20} />} value={stats?.pendingReports || 0} label="En Revisión" gradient="linear-gradient(135deg, #f59e0b, #f97316)" />
             <StatCard icon={<CheckCircle size={20} />} value={stats?.verifiedReports || 0} label="Verificados" gradient="linear-gradient(135deg, #10b981, #059669)" />
             <StatCard icon={<XCircle size={20} />} value={stats?.rejectedReports || 0} label="Rechazados" gradient="linear-gradient(135deg, #ef4444, #dc2626)" />
             <StatCard icon={<Users size={20} />} value={stats?.totalUsers || 0} label="Usuarios" gradient="linear-gradient(135deg, #06b6d4, #0284c7)" />
@@ -170,7 +170,7 @@ export default function DashboardView({ section, onReportClick }) {
                       </p>
                     </div>
                     <span className={`badge badge-${r.status?.toLowerCase?.() || 'pending'}`} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>
-                      {r.status === 'VERIFIED' ? 'Verificado' : r.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
+                      {r.status === 'VERIFIED' ? 'Verificado' : r.status === 'REJECTED' ? 'Rechazado' : 'En Revisión'}
                     </span>
                   </div>
                 ))}
@@ -277,7 +277,7 @@ export default function DashboardView({ section, onReportClick }) {
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stats.pendingReports || 0}</div>
-          <div className="stat-label"><Clock size={12} style={{ display: 'inline', marginRight: 4 }} />Pendientes</div>
+          <div className="stat-label"><Clock size={12} style={{ display: 'inline', marginRight: 4 }} />En Revisión</div>
         </div>
         <div className="stat-card">
           <div className="stat-value" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stats.verifiedReports || 0}</div>

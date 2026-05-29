@@ -13,8 +13,8 @@ import {
 
 const TYPE_CONFIG = {
   ROBBERY:    { label: 'Robo / Hurto',       color: '#ef4444', bg: '#ef444415', Icon: ShoppingBag },
-  ACCIDENT:   { label: 'Accidente',           color: '#f59e0b', bg: '#f59e0b15', Icon: AlertTriangle },
-  TRAFFIC:    { label: 'Tráfico',             color: '#3b82f6', bg: '#3b82f615', Icon: Car },
+  ACCIDENT:   { label: 'Accidente de Tránsito', color: '#f59e0b', bg: '#f59e0b15', Icon: AlertTriangle },
+  TRAFFIC:    { label: 'Congestión Vial',       color: '#3b82f6', bg: '#3b82f615', Icon: Car },
   TRANSIT_OP: { label: 'Operativo Tránsito',  color: '#6366f1', bg: '#6366f115', Icon: Radio },
   OTHER:      { label: 'Otro incidente',      color: '#64748b', bg: '#64748b15', Icon: Shield },
 };

@@ -17,11 +17,11 @@ import { AlertTriangle, MapPin, TrendingUp } from 'lucide-react';
 
 // Etiquetas en español para tipos de incidente
 const INCIDENT_LABELS = {
-  ROBBERY: 'Robo',
-  ACCIDENT: 'Accidente',
-  TRAFFIC: 'Tráfico',
-  TRANSIT_OP: 'Op. Tránsito',
-  OTHER: 'Otro',
+  ROBBERY: 'Robo / Hurto',
+  ACCIDENT: 'Accidente de Tránsito',
+  TRAFFIC: 'Congestión Vial',
+  TRANSIT_OP: 'Operativo de Tránsito',
+  OTHER: 'Otro Incidente',
 };
 
 export default function DangerousZoneBanner({ map, zone, visible }) {

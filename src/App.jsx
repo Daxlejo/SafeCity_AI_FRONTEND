@@ -320,6 +320,7 @@ function AppContent() {
 
   // Estado compartido del formulario de reporte (lifted from MapView)
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [reportTitle, setReportTitle] = useState('');
   const [reportDesc, setReportDesc] = useState('');
   const [reportType, setReportType] = useState('ROBBERY');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -329,10 +330,12 @@ function AppContent() {
     reportsAPI.getAll()
       .then((res) => {
         const data = res.data?.content || res.data || [];
-        setReports(Array.isArray(data) ? data : []);
+        const all = Array.isArray(data) ? data : [];
+        // Reportes PENDING solo son visibles para administradores
+        setReports(isAdmin ? all : all.filter((r) => r.status !== 'PENDING'));
       })
       .catch((err) => console.error('Error fetching reports:', err));
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => { if (user) setShowLogin(false); }, [user]);
 
@@ -370,6 +373,7 @@ function AppContent() {
   const cancelReportMode = () => {
     setReportMode(false);
     setSelectedLocation(null);
+    setReportTitle('');
     setReportDesc('');
   };
 
@@ -377,7 +381,7 @@ function AppContent() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const pendingSubmitRef = useRef(null);
 
-  const handleSubmitReport = async (photoUrl, incidentDate) => {
+  const handleSubmitReport = async (structuredData, photoUrl) => {
     if (!selectedLocation) return;
     setIsSubmitting(true);
 
@@ -385,7 +389,7 @@ function AppContent() {
     const userTrust = user?.trustLevel ?? 50;
     if (userTrust < 55 && !pendingSubmitRef.current) {
       // Guardar datos pendientes y abrir modal
-      pendingSubmitRef.current = { photoUrl, incidentDate };
+      pendingSubmitRef.current = { structuredData, photoUrl };
       setShowVerificationModal(true);
       setIsSubmitting(false);
       return;
@@ -395,23 +399,20 @@ function AppContent() {
     pendingSubmitRef.current = null;
     try {
       const reportData = {
-        description: reportDesc,
-        incidentType: reportType,
-        address: '',
+        ...structuredData,
         source: 'CITIZEN_TEXT',
-        latitude: selectedLocation.lat,
-        longitude: selectedLocation.lng,
       };
       if (photoUrl) reportData.photoUrl = photoUrl;
-      if (incidentDate) reportData.incidentDate = incidentDate;
+      
       await reportsAPI.create(reportData);
-      setReportDesc('');
-      setSelectedLocation(null);
+      
       setReportMode(false);
+      setSelectedLocation(null);
       try {
         const res = await reportsAPI.getAll();
         const data = res.data?.content || res.data || [];
-        setReports(Array.isArray(data) ? data : []);
+        // Mantener filtro PENDING para usuarios no-admin tras refrescar
+        setReports(isAdmin ? (Array.isArray(data) ? data : []) : (Array.isArray(data) ? data : []).filter((r) => r.status !== 'PENDING'));
       } catch (_) { /* ignorar error de refresh */ }
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Error desconocido';
@@ -427,7 +428,7 @@ function AppContent() {
     setShowVerificationModal(false);
     const pending = pendingSubmitRef.current;
     if (pending) {
-      handleSubmitReport(pending.photoUrl, pending.incidentDate);
+      handleSubmitReport(pending.structuredData, pending.photoUrl);
     }
   }, []);
 
@@ -468,8 +469,10 @@ function AppContent() {
     reports, setReports,
     wsConnected, setWsConnected,
     isAuthenticated: !!user,
+    isAdmin,
     reportMode, setReportMode,
     selectedLocation, setSelectedLocation,
+    reportTitle, setReportTitle,
     reportDesc, setReportDesc,
     reportType, setReportType,
     isSubmitting, handleSubmitReport, cancelReportMode,

@@ -1,25 +1,10 @@
 // ═══════════════════════════════════════════
 // GLOBAL DICTIONARY — SafeCity AI
 // ═══════════════════════════════════════════
-// Mapea valores técnicos del backend a etiquetas amigables en español.
+// Re-exporta desde la fuente centralizada en utils/incidentLabels.js.
+// Mantenido por retrocompatibilidad con archivos que ya lo importan.
 
-const TYPE_LABELS = {
-  ROBBERY: 'Robo',
-  ACCIDENT: 'Accidente de Tránsito',
-  TRAFFIC: 'Tráfico Pesado',
-  TRANSIT_OP: 'Operación de Tránsito',
-  TRANSIT: 'Operación de Tránsito',
-  TRANSIT_UP: 'Operación de Tránsito',
-  OTHER: 'Otro'
-};
-
-const STATUS_LABELS = {
-  PENDING: 'Pendiente',
-  VERIFIED: 'Verificado',
-  REJECTED: 'Rechazado',
-  RESOLVED: 'Solucionado / Aprobado',
-  APPROVED: 'Solucionado / Aprobado'
-};
+import { getTypeLabel, getStatusLabel } from '../utils/incidentLabels';
 
 /**
  * Traduce el tipo de incidente técnico a un formato amigable.
@@ -28,8 +13,7 @@ const STATUS_LABELS = {
  */
 export const translateType = (type) => {
   if (!type) return 'Otro';
-  const upper = type.toUpperCase().trim();
-  return TYPE_LABELS[upper] || type;
+  return getTypeLabel(type.toUpperCase().trim(), true);
 };
 
 /**
@@ -38,7 +22,6 @@ export const translateType = (type) => {
  * @returns {string}
  */
 export const translateStatus = (status) => {
-  if (!status) return 'Pendiente';
-  const upper = status.toUpperCase().trim();
-  return STATUS_LABELS[upper] || status;
+  if (!status) return 'En Revisión';
+  return getStatusLabel(status.toUpperCase().trim());
 };

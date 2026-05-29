@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import { hashPassword } from '../utils/hashPassword';
 import { disconnectWebSocket } from '../services/websocket';
 
 // ═══════════════════════════════════════════

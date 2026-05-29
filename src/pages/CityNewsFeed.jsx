@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 
 const TYPE_LABELS = {
-  ROBBERY: 'Robo', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico',
-  TRANSIT_OP: 'Op. Tránsito', OTHER: 'Otro'
+  ROBBERY: 'Robo / Hurto', ACCIDENT: 'Accidente de Tránsito', TRAFFIC: 'Congestión Vial',
+  TRANSIT_OP: 'Operativo de Tránsito', OTHER: 'Otro Incidente'
 };
 
 const TYPE_ICONS = {

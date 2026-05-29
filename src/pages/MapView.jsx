@@ -8,6 +8,7 @@ import { uploadAPI } from '../services/api';
 import { MapPin, Send, Crosshair, Plus, X, LogIn, Navigation, Camera, Flame } from 'lucide-react';
 import HeatmapLayer from '../components/HeatmapLayer';
 import DangerousZoneBanner from '../components/DangerousZoneBanner';
+import DynamicReportForm from '../components/DynamicReportForm';
 import { translateType, translateStatus } from '../services/dictionary';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -18,11 +19,11 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
 const INCIDENT_TYPES = [
-  { value: 'ROBBERY',    label: 'Robo',        color: '#ef4444', cssVar: 'var(--robbery)' },
-  { value: 'ACCIDENT',   label: 'Accidente',   color: '#f59e0b', cssVar: 'var(--accident)' },
-  { value: 'TRAFFIC',    label: 'Tráfico',     color: '#eab308', cssVar: 'var(--traffic)' },
-  { value: 'TRANSIT_OP', label: 'Op. Tránsito', color: '#3b82f6', cssVar: 'var(--transit_op)' },
-  { value: 'OTHER',      label: 'Otro',        color: '#64748b', cssVar: 'var(--other)' },
+  { value: 'ROBBERY',    label: 'Robo / Hurto',          color: '#ef4444', cssVar: 'var(--robbery)' },
+  { value: 'ACCIDENT',   label: 'Accidente de Tránsito', color: '#f59e0b', cssVar: 'var(--accident)' },
+  { value: 'TRAFFIC',    label: 'Congestión Vial',        color: '#eab308', cssVar: 'var(--traffic)' },
+  { value: 'TRANSIT_OP', label: 'Operativo de Tránsito',  color: '#3b82f6', cssVar: 'var(--transit_op)' },
+  { value: 'OTHER',      label: 'Otro Incidente',         color: '#64748b', cssVar: 'var(--other)' },
 ];
 
 function getIncidentColor(type) {
@@ -87,8 +88,9 @@ const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x
 
 export default function MapView({
   reports, setReports, wsConnected, setWsConnected,
-  section, isAuthenticated, reportMode, setReportMode,
+  section, isAuthenticated, isAdmin, reportMode, setReportMode,
   selectedLocation, setSelectedLocation,
+  reportTitle, setReportTitle,
   reportDesc, setReportDesc, reportType, setReportType,
   isSubmitting, handleSubmitReport, cancelReportMode,
   onReportClick,
@@ -330,8 +332,9 @@ export default function MapView({
     if (section !== 'main') return;
     connectWebSocket(
       (newReport) => {
-        // Reporte nuevo: solo agregar si NO es REJECTED (coherente con API pública)
+        // Reporte nuevo: descartar REJECTED siempre; descartar PENDING si el usuario no es admin
         if (newReport.status === 'REJECTED') return;
+        if (newReport.status === 'PENDING' && !isAdmin) return;
         setReports((prev) => {
           const filtered = prev.filter((r) => r.id !== newReport.id);
           return [newReport, ...filtered];
@@ -342,6 +345,9 @@ export default function MapView({
       (updatedReport) => {
         // Si el reporte fue RECHAZADO, eliminarlo del array público
         if (updatedReport.status === 'REJECTED') {
+          setReports((prev) => prev.filter((r) => r.id !== updatedReport.id));
+        } else if (updatedReport.status === 'PENDING' && !isAdmin) {
+          // Reporte retrocedió a PENDING (ej: re-clasificación): ocultarlo para usuarios normales
           setReports((prev) => prev.filter((r) => r.id !== updatedReport.id));
         } else {
           setReports((prev) =>
@@ -358,7 +364,7 @@ export default function MapView({
       clearInterval(interval);
       disconnectWebSocket();
     };
-  }, [section, setReports, setWsConnected]);
+  }, [section, setReports, setWsConnected, isAdmin]);
 
   // ═══ Reaccionar a cambios de ubicación del hook ═══
   useEffect(() => {
@@ -397,182 +403,21 @@ export default function MapView({
       <div className="sidebar-content">
         {isAuthenticated ? (
           reportMode ? (
-            <div className="glass-card">
-              <div className="section-header">
-                <h2>Nuevo Reporte</h2>
-                <button className="btn btn-ghost btn-sm" onClick={cancelReportMode}>
-                  <X size={14} /> Cancelar
-                </button>
-              </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(photoUrl, new Date().toISOString().slice(0, 19)); setPhotoFile(null); setPhotoUrl(null); }}>
-                <div className="form-group">
-                  <label>Tipo de incidente</label>
-                  <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
-                    {INCIDENT_TYPES.map((t) => (<option key={t.value} value={t.value}>{translateType(t.value)}</option>))}
-                  </select>
-                </div>
-
-                {/* Asistente de IA - Preguntas Guía */}
-                {IA_QUESTIONS[reportType] && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px dashed var(--border-color)',
-                    borderRadius: '0.5rem',
-                    padding: '0.75rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.6rem'
-                  }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 600 }}>
-                      ✨ Asistente de IA: Guía de Incidentes
-                    </span>
-                    {IA_QUESTIONS[reportType].map((q) => (
-                      <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{q.label}</span>
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                          {q.options.map((opt) => {
-                            const isSelected = iaAnswers[q.id] === opt;
-                            return (
-                              <button
-                                key={opt}
-                                type="button"
-                                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  fontSize: '0.7rem',
-                                  flex: 1,
-                                  background: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
-                                  border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'}`
-                                }}
-                                onClick={() => setIaAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{
-                        marginTop: '0.25rem',
-                        fontSize: '0.73rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.35rem',
-                        background: 'rgba(99,102,241,0.1)',
-                        border: '1px solid rgba(99,102,241,0.2)',
-                        color: 'var(--accent)'
-                      }}
-                      onClick={handleGenerateAIDesc}
-                    >
-                      🪄 Generar Descripción con IA
-                    </button>
-                  </div>
-                )}
-
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                    <label style={{ margin: 0 }}>Descripción</label>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: (reportDesc.length < 30 || reportDesc.length > 200) ? 'var(--error)' : 'var(--success)'
-                    }}>
-                      {reportDesc.length} / 200
-                    </span>
-                  </div>
-                  <textarea
-                    className="form-textarea"
-                    rows="3"
-                    required
-                    minLength={30}
-                    maxLength={200}
-                    value={reportDesc}
-                    onChange={(e) => setReportDesc(e.target.value)}
-                    placeholder="Describe el incidente (mín. 30 caracteres)..."
-                  />
-                  {reportDesc.length > 0 && reportDesc.length < 30 && (
-                    <p style={{ fontSize: '0.68rem', color: 'var(--error)', marginTop: '0.2rem' }}>
-                      Faltan {30 - reportDesc.length} caracteres para el mínimo requerido.
-                    </p>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label>Ubicación</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                      <Crosshair size={14} style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)', flexShrink: 0 }} />
-                      <span style={{ color: selectedLocation ? 'var(--success)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedLocation ? `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}` : 'Clic en mapa o usar GPS'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={handleGeolocate}
-                      disabled={geoLocating}
-                      title="Usar mi ubicación GPS"
-                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }}
-                    >
-                      {geoLocating ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Navigation size={12} />}
-                      GPS
-                    </button>
-                  </div>
-                  {/* ═══ Toast de error GPS (reemplaza alert()) ═══ */}
-                    {geoError && (
-                    <div style={{
-                      background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
-                      borderRadius: '0.4rem', padding: '0.45rem 0.6rem', fontSize: '0.73rem',
-                      color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.35rem',
-                      marginTop: '0.25rem'
-                    }}>
-                      <span style={{ flex: 1 }}>{geoError}</span>
-                      <button onClick={clearError} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
-                  {/* Fallback: input manual de dirección cuando GPS fue denegado */}
-                  {geoErrorType === 'permission_denied' && (
-                    <p style={{
-                      fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.25rem',
-                      lineHeight: 1.4, fontStyle: 'italic'
-                    }}>
-                      💡 También puedes hacer clic directamente en el mapa para marcar la ubicación del incidente.
-                    </p>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Camera size={13} /> Foto (opcional)
-                  </label>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
-                    padding: '0.5rem 0.75rem', borderRadius: '0.4rem',
-                    border: '1px dashed var(--border-color)', fontSize: '0.78rem',
-                    color: photoFile ? 'var(--success)' : 'var(--text-muted)',
-                    background: 'rgba(255,255,255,0.03)',
-                  }}>
-                    <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-                    {uploadingPhoto ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Camera size={13} />}
-                    {uploadingPhoto ? 'Subiendo...' : photoFile ? photoFile.name.substring(0, 20) + '...' : 'Seleccionar imagen'}
-                  </label>
-                </div>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-full"
-                  disabled={!selectedLocation || isSubmitting || uploadingPhoto || reportDesc.length < 30 || reportDesc.length > 200}
-                >
-                  {isSubmitting ? <span className="spinner" /> : <Send size={16} />}
-                  {isSubmitting ? 'Enviando...' : 'Enviar Reporte'}
-                </button>
-              </form>
-            </div>
+            <DynamicReportForm
+              reportType={reportType}
+              setReportType={setReportType}
+              selectedLocation={selectedLocation}
+              setSelectedLocation={setSelectedLocation}
+              submitting={isSubmitting}
+              onSubmit={handleSubmitReport}
+              onCancel={cancelReportMode}
+              geoLocation={geoLocation}
+              geoLocating={geoLocating}
+              geoError={geoError}
+              geoErrorType={geoErrorType}
+              onGeolocate={handleGeolocate}
+              onClearGeoError={clearError}
+            />
           ) : (
             !isMobile && (
               <button className="btn btn-primary btn-full" onClick={() => setReportMode(true)}>
