@@ -246,43 +246,55 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
           )}
 
           {/* Foto */}
-          {photoUrl && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                <Camera size={14} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Evidencia fotográfica</span>
-              </div>
-              {hasPhotoError ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  padding: '1.5rem',
-                  borderRadius: '0.5rem',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px dashed var(--border-color)',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.78rem',
-                  textAlign: 'center'
-                }}>
-                  <Camera size={24} style={{ color: '#ef4444', opacity: 0.8 }} />
-                  <span>No se pudo cargar la imagen de evidencia</span>
-                </div>
-              ) : (
-                <img
-                  src={photoUrl}
-                  alt="Evidencia del incidente"
-                  style={{
-                    width: '100%', borderRadius: '0.5rem', maxHeight: 200,
-                    objectFit: 'cover', border: '1px solid var(--border-color)'
-                  }}
-                  onError={() => setHasPhotoError(true)}
-                />
-              )}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <Camera size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Evidencia fotográfica</span>
             </div>
-          )}
+            {!photoUrl ? (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.01)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '0.5rem',
+                padding: '1.5rem',
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                fontStyle: 'italic',
+                lineHeight: 1.4
+              }}>
+                Reporte guardado sin evidencia fotográfica.
+              </div>
+            ) : hasPhotoError ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '1.5rem',
+                borderRadius: '0.5rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-color)',
+                color: 'var(--text-muted)',
+                fontSize: '0.78rem',
+                textAlign: 'center'
+              }}>
+                <Camera size={24} style={{ color: '#ef4444', opacity: 0.8 }} />
+                <span>Evidencia fotográfica no disponible</span>
+              </div>
+            ) : (
+              <img
+                src={photoUrl}
+                alt="Evidencia del incidente"
+                style={{
+                  width: '100%', borderRadius: '0.5rem', maxHeight: 200,
+                  objectFit: 'cover', border: '1px solid var(--border-color)'
+                }}
+                onError={() => setHasPhotoError(true)}
+              />
+            )}
+          </div>
 
           {/* Mini mapa */}
           {report.latitude && report.longitude && (

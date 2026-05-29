@@ -401,13 +401,13 @@ function AppContent() {
         const data = res.data?.content || res.data || [];
         setReports(isAdmin ? (Array.isArray(data) ? data : []) : (Array.isArray(data) ? data : []).filter((r) => r.status !== 'PENDING' && r.status !== 'EXPIRED'));
         
-        alert("Reporte subido con éxito a la base de datos.");
+        showToast("¡Reporte subido con éxito a la base de datos!", "success");
       }
     } catch (error) {
       console.error("Error crítico en el backend/IA:", error);
       // Captura el mensaje real del por qué el backend te lo rechazó
       const backendMessage = error.response?.data?.message || error.response?.data?.error || error.message || "Los campos ingresados no son válidos.";
-      alert(`Rechazado por el servidor: ${backendMessage}`);
+      showToast(`Rechazado por el servidor: ${backendMessage}`, "alert");
     } finally {
       // SE EJECUTA SIEMPRE: Si falla, libera el botón para que el usuario corrija
       setIsSubmitting(false);

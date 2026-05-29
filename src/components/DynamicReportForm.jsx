@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Camera, Navigation, X, Crosshair, Send, AlertTriangle } from 'lucide-react';
 import { uploadAPI } from '../services/api';
 import { INCIDENT_TYPE_LABELS, INCIDENT_TYPE_COLORS } from '../utils/incidentLabels';
+import { useToast } from '../context/ToastContext';
 
 // ═══════════════════════════════════════════
 // FORMULARIO DINÁMICO DE REPORTES — SafeCity AI
@@ -86,6 +87,7 @@ export default function DynamicReportForm({
   onGeolocate,
   onClearGeoError,
 }) {
+  const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [dynamicData, setDynamicData] = useState({});
@@ -94,11 +96,14 @@ export default function DynamicReportForm({
   const [photoUrl, setPhotoUrl] = useState(null);
 
   const [iaAnswers, setIaAnswers] = useState({});
+  const [isEditingIA, setIsEditingIA] = useState(false);
 
   // Resetear campos dinámicos al cambiar el tipo
   useEffect(() => {
     setDynamicData({});
     setIaAnswers({});
+    setNotes('');
+    setIsEditingIA(false);
   }, [reportType]);
 
   const handleIA = (e) => {
@@ -184,10 +189,10 @@ export default function DynamicReportForm({
     e.preventDefault(); // LA LÍNEA SAGRADA: Evita que la página se recargue y borre todo
     if (!selectedLocation || !title.trim()) return;
 
-    // Validación de longitud en el Front
+    // Validación de seguridad: Asegurar que se usó el asistente de IA antes de enviar
     const cleanNotes = notes.trim();
-    if (cleanNotes.length < 30 || cleanNotes.length > 200) {
-      alert("La descripción (notas adicionales) del reporte debe tener entre 30 y 200 caracteres.");
+    if (!cleanNotes || cleanNotes.length < 30) {
+      showToast("Por favor, genera la descripción con el Asistente de IA antes de enviar.", "alert");
       return;
     }
 
@@ -399,22 +404,73 @@ export default function DynamicReportForm({
           </div>
         )}
 
-        {/* Notas adicionales */}
+        {/* Vista previa de descripción autogenerada */}
         <div className="form-group">
-          <label>
-            Notas adicionales (opcional)
-            <span className="form-char-count" style={{ color: notes.length > NOTES_MAX ? '#ef4444' : 'var(--text-muted)' }}>
-              {notes.length}/{NOTES_MAX}
-            </span>
-          </label>
-          <textarea
-            className="form-textarea"
-            rows="2"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value.slice(0, NOTES_MAX))}
-            placeholder="Información adicional relevante..."
-            maxLength={NOTES_MAX}
-          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+              <span>Descripción del reporte</span>
+              <span style={{ fontSize: '0.68rem', background: 'rgba(99,102,241,0.15)', color: 'var(--accent)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem', fontWeight: 600 }}>Generación IA</span>
+            </label>
+            {notes && (
+              <button
+                type="button"
+                onClick={() => setIsEditingIA(!isEditingIA)}
+                style={{
+                  background: isEditingIA ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${isEditingIA ? 'var(--accent)' : 'var(--border-color)'}`,
+                  color: isEditingIA ? 'var(--accent)' : 'var(--text-secondary)',
+                  borderRadius: '0.35rem',
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isEditingIA ? '💾 Guardar' : '✏️ Editar'}
+              </button>
+            )}
+          </div>
+          {notes ? (
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value.slice(0, NOTES_MAX))}
+              readOnly={!isEditingIA}
+              className="form-textarea"
+              rows={isEditingIA ? "4" : "3"}
+              placeholder="Descripción del incidente..."
+              style={{
+                background: isEditingIA ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                color: isEditingIA ? 'var(--text-primary)' : 'var(--text-secondary)',
+                border: `1px ${isEditingIA ? 'dashed var(--accent)' : 'solid var(--border-color)'}`,
+                cursor: isEditingIA ? 'text' : 'default',
+                lineHeight: 1.4,
+                width: '100%',
+                fontSize: '0.8rem',
+                borderRadius: '0.4rem',
+                padding: '0.75rem',
+                resize: isEditingIA ? 'vertical' : 'none',
+                outline: 'none',
+                transition: 'all 0.2s ease'
+              }}
+            />
+          ) : (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.01)',
+              border: '1px dashed var(--border-color)',
+              borderRadius: '0.4rem',
+              padding: '0.75rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              lineHeight: 1.4
+            }}>
+              💡 Usa las preguntas guía del Asistente de IA de arriba y presiona \"Generar con IA\" para crear la descripción automáticamente.
+            </div>
+          )}
         </div>
 
         {/* Ubicación */}

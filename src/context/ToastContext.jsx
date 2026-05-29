@@ -81,9 +81,6 @@ export function ToastProvider({ children }) {
   }, []);
 
   const showToast = useCallback((message, type = 'default') => {
-    // Desktop-only: suppress toasts on narrow viewports (≤ 768px)
-    if (window.innerWidth <= 768) return;
-
     const id = ++counterRef.current;
     setToasts((prev) => [...prev.slice(-3), { id, message, type, exiting: false }]);
 

@@ -56,8 +56,14 @@ export function AuthProvider({ children }) {
 
   // Cargar sesión del localStorage al montar
   useEffect(() => {
-    const savedToken = localStorage.getItem('safecity_token');
-    const savedUser = localStorage.getItem('safecity_user');
+    let savedToken = null;
+    let savedUser = null;
+    try {
+      savedToken = localStorage.getItem('safecity_token');
+      savedUser = localStorage.getItem('safecity_user');
+    } catch (e) {
+      console.warn("El almacenamiento local está deshabilitado en este navegador. Se usará un estado en memoria de React.");
+    }
     if (savedToken && savedUser) {
       // Verificar que el token no haya expirado durante la ausencia del usuario
       const remaining = getTokenRemainingMs(savedToken);
@@ -66,8 +72,10 @@ export function AuthProvider({ children }) {
         setUser(JSON.parse(savedUser));
       } else {
         // Token expirado — limpiar sesión silenciosamente
-        localStorage.removeItem('safecity_token');
-        localStorage.removeItem('safecity_user');
+        try {
+          localStorage.removeItem('safecity_token');
+          localStorage.removeItem('safecity_user');
+        } catch (_) {}
       }
     }
     setLoading(false);
@@ -97,10 +105,12 @@ export function AuthProvider({ children }) {
         try {
           const res = await authAPI.refreshToken();
           const { token: newToken, user: userData } = res.data;
-          setToken(newToken);
+           setToken(newToken);
           setUser(userData);
-          localStorage.setItem('safecity_token', newToken);
-          localStorage.setItem('safecity_user', JSON.stringify(userData));
+          try {
+            localStorage.setItem('safecity_token', newToken);
+            localStorage.setItem('safecity_user', JSON.stringify(userData));
+          } catch (_) {}
         } catch {
           // Si el refresh falla, el usuario será forzado a re-autenticarse
           // cuando el token expire naturalmente
@@ -122,8 +132,10 @@ export function AuthProvider({ children }) {
     const { token: newToken, user: userData } = res.data;
     setToken(newToken);
     setUser(userData);
-    localStorage.setItem('safecity_token', newToken);
-    localStorage.setItem('safecity_user', JSON.stringify(userData));
+    try {
+      localStorage.setItem('safecity_token', newToken);
+      localStorage.setItem('safecity_user', JSON.stringify(userData));
+    } catch (_) {}
     return userData;
   };
 
@@ -132,17 +144,23 @@ export function AuthProvider({ children }) {
     const { token: newToken, user: userData } = res.data;
     setToken(newToken);
     setUser(userData);
-    localStorage.setItem('safecity_token', newToken);
-    localStorage.setItem('safecity_user', JSON.stringify(userData));
+    try {
+      localStorage.setItem('safecity_token', newToken);
+      localStorage.setItem('safecity_user', JSON.stringify(userData));
+    } catch (_) {}
     return userData;
   };
 
   const performLogout = useCallback(() => {
     // Purgar absolutamente TODO el estado de sesión
-    Object.keys(localStorage)
-      .filter(key => key.startsWith('safecity_'))
-      .forEach(key => localStorage.removeItem(key));
-    sessionStorage.clear();
+    try {
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('safecity_'))
+        .forEach(key => localStorage.removeItem(key));
+    } catch (_) {}
+    try {
+      sessionStorage.clear();
+    } catch (_) {}
 
     // Desconectar WebSocket antes de redirigir
     try { disconnectWebSocket(); } catch (_) { /* silent */ }

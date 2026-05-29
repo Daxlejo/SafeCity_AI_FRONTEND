@@ -17,7 +17,10 @@ const api = axios.create({
 // ═══════════════════════════════════════════
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('safecity_token');
+  let token = null;
+  try {
+    token = localStorage.getItem('safecity_token');
+  } catch (_) {}
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -28,8 +31,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('safecity_token');
-      localStorage.removeItem('safecity_user');
+      try {
+        localStorage.removeItem('safecity_token');
+        localStorage.removeItem('safecity_user');
+      } catch (_) {}
       window.location.reload();
     }
     return Promise.reject(error);
