@@ -113,98 +113,9 @@ export default function MapView({
   const reportModeRef = useRef(reportMode);
   const setSelectedLocationRef = useRef(setSelectedLocation);
 
-  const [photoFile, setPhotoFile] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState(null);
 
-  const [iaAnswers, setIaAnswers] = useState({});
 
-  useEffect(() => {
-    setIaAnswers({});
-  }, [reportType]);
 
-  const handleGenerateAIDesc = () => {
-    let text = '';
-    const typeLabel = translateType(reportType);
-
-    if (reportType === 'ACCIDENT') {
-      const heridos = iaAnswers.heridos || 'No';
-      const obst = iaAnswers.obstruccion || 'No';
-      const vehs = iaAnswers.vehiculos || '2';
-      text = `Se reporta un ${typeLabel.toLowerCase()} con ${vehs} vehículo(s) implicado(s). ${
-        heridos === 'Sí' ? 'Se confirma la presencia de heridos en la vía' : 'No se reportan personas heridas'
-      }. ${
-        obst === 'Sí' ? 'Hay obstrucción severa del tráfico' : 'El paso vehicular fluye con precaución'
-      }.`;
-    } else if (reportType === 'TRAFFIC') {
-      const bloqueo = iaAnswers.bloqueo || 'No';
-      const causa = iaAnswers.causa || 'Desconocido';
-      text = `Reporte de ${typeLabel.toLowerCase()} debido a ${
-        causa === 'Accidente' ? 'un accidente previo en la zona' :
-        causa === 'Obras en vía' ? 'obras viales activas' :
-        causa === 'Manifestación' ? 'manifestaciones ciudadanas' : 'causas desconocidas'
-      }. ${
-        bloqueo === 'Sí' ? 'La vía está completamente bloqueada' : 'Tránsito lento pero en movimiento'
-      }.`;
-    } else if (reportType === 'TRANSIT_OP') {
-      const policia = iaAnswers.policia || 'Sí';
-      const retencion = iaAnswers.retencion || 'No';
-      text = `Se observa una ${typeLabel.toLowerCase()}${
-        policia === 'Sí' ? ' coordinada por agentes de tránsito y policía' : ''
-      }. ${
-        retencion === 'Sí' ? 'Se están reteniendo vehículos para inspección' : 'Flujo normal de inspección preventiva'
-      }.`;
-    } else if (reportType === 'ROBBERY') {
-      const arma = iaAnswers.arma || 'No';
-      const afectados = iaAnswers.afectados || 'No';
-      const sospechosos = iaAnswers.sospechosos || '1';
-      text = `Incidente de ${typeLabel.toLowerCase()} reportado en la zona. Involucra a ${sospechosos} sospechoso(s). ${
-        arma === 'Sí' ? 'Cometido con arma visible' : 'Sin uso de armas aparentes'
-      }. ${
-        afectados === 'Sí' ? 'Se reportan afectados que requieren asistencia' : 'No hay personas heridas reportadas'
-      }.`;
-    } else {
-      const gravedad = iaAnswers.gravedad || 'Leve';
-      const policia_req = iaAnswers.policia_req || 'No';
-      text = `Reporte de incidente de tipo ${typeLabel.toLowerCase()} con gravedad ${gravedad.toLowerCase()}. ${
-        policia_req === 'Sí' ? 'Se solicita con urgencia presencia de la policía nacional' : 'Inspección de prevención normal'
-      }.`;
-    }
-
-    if (text.length < 30) {
-      text = `${text} Por favor, transitar con extrema precaución por la zona indicada.`;
-    }
-    if (text.length > 200) {
-      text = text.substring(0, 197) + '...';
-    }
-
-    setReportDesc(text);
-  };
-
-  const IA_QUESTIONS = {
-    ACCIDENT: [
-      { id: 'heridos', label: '¿Hay heridos en la vía?', options: ['Sí', 'No'] },
-      { id: 'obstruccion', label: '¿Hay obstrucción del tráfico?', options: ['Sí', 'No'] },
-      { id: 'vehiculos', label: 'Vehículos involucrados', options: ['1', '2', '3+'] }
-    ],
-    TRAFFIC: [
-      { id: 'bloqueo', label: '¿Bloqueo total de la vía?', options: ['Sí', 'No'] },
-      { id: 'causa', label: 'Causa aparente', options: ['Accidente', 'Obras en vía', 'Manifestación', 'Desconocido'] }
-    ],
-    TRANSIT_OP: [
-      { id: 'policia', label: '¿Es un operativo policial?', options: ['Sí', 'No'] },
-      { id: 'retencion', label: '¿Hay retención de vehículos?', options: ['Sí', 'No'] }
-    ],
-    ROBBERY: [
-      { id: 'arma', label: '¿Fue con arma o violencia?', options: ['Sí', 'No'] },
-      { id: 'afectados', label: '¿Hay heridos o afectados?', options: ['Sí', 'No'] },
-      { id: 'sospechosos', label: 'Sospechosos visibles', options: ['1', '2', '3+'] }
-    ],
-    OTHER: [
-      { id: 'gravedad', label: '¿Nivel de gravedad?', options: ['Leve', 'Moderado', 'Crítico'] },
-      { id: 'policia_req', label: '¿Requiere presencia policial?', options: ['Sí', 'No'] }
-    ]
-  };
 
   // ═══ Agente 4: Hook de datos para Heatmap y Zona Peligrosa ═══
   const { points: heatmapPoints, dangerousZone, loading: heatmapLoading } = useHeatmapData();
@@ -380,22 +291,7 @@ export default function MapView({
     requestLocation();
   };
 
-  // Subida de foto
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setUploadingPhoto(true);
-    try {
-      const res = await uploadAPI.uploadPhoto(file);
-      setPhotoUrl(res.data?.photoUrl || res.data?.fileName || null);
-    } catch (err) {
-      console.error('Error subiendo foto:', err);
-      setPhotoUrl(null);
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
+
 
   // ═══════════════ SIDEBAR ═══════════════
   if (section === 'sidebar') {

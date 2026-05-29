@@ -13,7 +13,6 @@ import OsintView from './pages/OsintView';
 import AlertsConfigView from './pages/AlertsConfigView';
 import ReportDetailModal from './components/ReportDetailModal';
 import OnboardingTutorial from './components/OnboardingTutorial';
-import ReportVerificationModal from './components/ReportVerificationModal';
 import useInactivityTimer from './hooks/useInactivityTimer';
 import {
   Shield, Map, BarChart3, Bell, LogOut, User,
@@ -377,26 +376,10 @@ function AppContent() {
     setReportDesc('');
   };
 
-  // ═══ Agente 2: Estado del modal de verificación de reporte ═══
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const pendingSubmitRef = useRef(null);
-
   const handleSubmitReport = async (structuredData, photoUrl) => {
     if (!selectedLocation) return;
     setIsSubmitting(true);
 
-    // Si el usuario tiene TrueScore < 55, mostrar modal de verificación primero
-    const userTrust = user?.trustLevel ?? 50;
-    if (userTrust < 55 && !pendingSubmitRef.current) {
-      // Guardar datos pendientes y abrir modal
-      pendingSubmitRef.current = { structuredData, photoUrl };
-      setShowVerificationModal(true);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Limpiar ref de pendiente
-    pendingSubmitRef.current = null;
     try {
       const reportData = {
         ...structuredData,
@@ -422,20 +405,6 @@ function AppContent() {
       setIsSubmitting(false);
     }
   };
-
-  // Callback cuando el usuario confirma en el modal de verificación
-  const handleVerificationConfirm = useCallback(() => {
-    setShowVerificationModal(false);
-    const pending = pendingSubmitRef.current;
-    if (pending) {
-      handleSubmitReport(pending.structuredData, pending.photoUrl);
-    }
-  }, []);
-
-  const handleVerificationClose = useCallback(() => {
-    setShowVerificationModal(false);
-    pendingSubmitRef.current = null;
-  }, []);
 
   if (authLoading) {
     return (
@@ -546,13 +515,7 @@ function AppContent() {
         <OnboardingTutorial onComplete={() => setShowOnboarding(false)} />
       )}
 
-      {/* Agente 2: Modal de Verificación para TrueScore < 55 */}
-      <ReportVerificationModal
-        isOpen={showVerificationModal}
-        onClose={handleVerificationClose}
-        onConfirm={handleVerificationConfirm}
-        trustScore={user?.trustLevel ?? null}
-      />
+
     </>
   );
 
