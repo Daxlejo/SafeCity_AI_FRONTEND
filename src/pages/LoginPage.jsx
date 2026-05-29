@@ -4,6 +4,25 @@ import { useTheme } from '../context/ThemeContext';
 import { authAPI } from '../services/api';
 import { Shield, AlertCircle, Mail, Lock, User, CreditCard, Sun, Moon, ArrowLeft } from 'lucide-react';
 
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+const isEmailValid = (email) => {
+  return email.length > 0 && email.length <= 100 && emailRegex.test(email);
+};
+
+const isCedulaValid = (cedula) => {
+  return /^[0-9]{10,15}$/.test(cedula);
+};
+
+const isPasswordValid = (password) => {
+  if (password.length < 6 || password.length > 12) return false;
+  return /[0-9!@#$%^&*]/.test(password);
+};
+
+const isNameValid = (name) => {
+  return name.trim().length > 0 && name.length <= 100;
+};
+
 export default function LoginPage({ onBack, initialView, initialToken }) {
   const { login, register } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -18,7 +37,25 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
     token: initialToken || '', newPassword: ''
   });
 
-  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); setSuccess(''); };
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError('');
+    setSuccess('');
+  };
+
+  const handleCedulaKeyPress = (e) => {
+    // Permite únicamente caracteres numéricos [0-9]
+    if (!/[0-9]/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const hashPassword = async (pwd) => {
+    const msgBuffer = new TextEncoder().encode(pwd);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,17 +65,18 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
     setLoading(true);
     try {
       if (view === 'register') {
-        await register({ name: form.name, email: form.email, cedula: form.cedula, password: form.password });
+        const hashedPassword = await hashPassword(form.password);
+        await register({ name: form.name, email: form.email, cedula: form.cedula, password: hashedPassword });
       } else if (view === 'login') {
-        await login(form.identifier, form.password);
+        const hashedPassword = await hashPassword(form.password);
+        await login(form.identifier, hashedPassword);
       } else if (view === 'forgot') {
-        // Forgot password call
         await authAPI.forgotPassword(form.email);
         setSuccess('Se ha enviado un correo electrónico con las instrucciones para restablecer la contraseña.');
         setTimeout(() => { setView('login'); setSubmitted(false); }, 3000);
       } else if (view === 'reset') {
-        // Reset password call
-        await authAPI.resetPassword(form.token, form.newPassword);
+        const hashedNewPassword = await hashPassword(form.newPassword);
+        await authAPI.resetPassword(form.token, hashedNewPassword);
         setSuccess('Contraseña actualizada correctamente. Iniciando sesión...');
         setTimeout(() => setView('login'), 2000);
       }
@@ -48,6 +86,12 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
       setLoading(false);
     }
   };
+
+  // Validaciones de activación del botón de submit
+  const isRegisterFormValid = isNameValid(form.name) && isEmailValid(form.email) && isCedulaValid(form.cedula) && isPasswordValid(form.password);
+  const isLoginFormValid = form.identifier.trim().length > 0 && form.identifier.length <= 100 && form.password.length >= 6 && form.password.length <= 12;
+  const isForgotFormValid = isEmailValid(form.email);
+  const isResetFormValid = isPasswordValid(form.newPassword);
 
   return (
     <div className="auth-page">
@@ -88,21 +132,21 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
                 <label>Nombre completo</label>
                 <div style={{ position: 'relative' }}>
                   <User size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" name="name" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Tu nombre" value={form.name} onChange={handleChange} required />
+                  <input type="text" name="name" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Tu nombre" value={form.name} onChange={handleChange} maxLength={100} required />
                 </div>
               </div>
               <div className="form-group">
                 <label>Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="email" name="email" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} required />
+                  <input type="email" name="email" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} maxLength={100} required />
                 </div>
               </div>
               <div className="form-group">
                 <label>Cédula</label>
                 <div style={{ position: 'relative' }}>
                   <CreditCard size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" name="cedula" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Número de cédula" value={form.cedula} onChange={handleChange} required pattern="[0-9]{6,11}" title="6 a 11 dígitos" />
+                  <input type="text" name="cedula" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="Número de cédula" value={form.cedula} onChange={handleChange} onKeyPress={handleCedulaKeyPress} maxLength={15} required />
                 </div>
               </div>
             </>
@@ -113,7 +157,7 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
               <label>Email o Cédula</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input type="text" name="identifier" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com o cédula" value={form.identifier} onChange={handleChange} required />
+                <input type="text" name="identifier" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com o cédula" value={form.identifier} onChange={handleChange} maxLength={100} required />
               </div>
             </div>
           )}
@@ -123,11 +167,10 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
               <label>Email registrado</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input type="email" name="email" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} required />
+                <input type="email" name="email" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} maxLength={100} required />
               </div>
             </div>
           )}
-
 
           {view === 'reset' && (
             <>
@@ -141,8 +184,11 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
                 <label>Nueva Contraseña</label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="password" name="newPassword" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.newPassword} onChange={handleChange} required minLength={6} />
+                  <input type="password" name="newPassword" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.newPassword} onChange={handleChange} maxLength={12} required />
                 </div>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  La contraseña debe tener entre 6 y 12 caracteres, e incluir al menos un número o un símbolo.
+                </p>
               </div>
             </>
           )}
@@ -152,12 +198,28 @@ export default function LoginPage({ onBack, initialView, initialToken }) {
               <label>Contraseña</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input type="password" name="password" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.password} onChange={handleChange} required minLength={6} />
+                <input type="password" name="password" className="form-input" style={{ paddingLeft: '2.25rem', width: '100%' }} placeholder="••••••••" value={form.password} onChange={handleChange} maxLength={12} required />
               </div>
+              {view === 'register' && (
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  La contraseña debe tener entre 6 y 12 caracteres, e incluir al menos un número o un símbolo.
+                </p>
+              )}
             </div>
           )}
 
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: '0.5rem' }}>
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={
+              loading ||
+              (view === 'register' && !isRegisterFormValid) ||
+              (view === 'login' && !isLoginFormValid) ||
+              (view === 'forgot' && !isForgotFormValid) ||
+              (view === 'reset' && !isResetFormValid)
+            }
+            style={{ marginTop: '0.5rem' }}
+          >
             {loading && <span className="spinner" />}
             {loading ? 'Procesando...' :
               view === 'register' ? 'Registrarse' :

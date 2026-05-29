@@ -1,22 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useTheme } from '../context/ThemeContext';
 import { X, MapPin, Shield, Clock, CheckCircle, XCircle, Eye, FileText, Camera, Navigation } from 'lucide-react';
 import { uploadAPI } from '../services/api';
+import { translateType, translateStatus } from '../services/dictionary';
 
-const TYPE_LABELS = {
-  ROBBERY: 'Robo', ACCIDENT: 'Accidente', TRAFFIC: 'Tráfico',
-  TRANSIT_OP: 'Op. Tránsito', OTHER: 'Otro'
-};
 const TYPE_COLORS = {
   ROBBERY: '#ef4444', ACCIDENT: '#f59e0b', TRAFFIC: '#eab308',
   TRANSIT_OP: '#3b82f6', OTHER: '#64748b'
 };
 const STATUS_COLORS = {
   PENDING: '#f59e0b', VERIFIED: '#10b981', REJECTED: '#ef4444', RESOLVED: '#6366f1'
-};
-const STATUS_LABELS = {
-  PENDING: 'Pendiente', VERIFIED: 'Verificado', REJECTED: 'Rechazado', RESOLVED: 'Resuelto'
 };
 const STATUS_ICONS = {
   PENDING: Clock,
@@ -29,6 +23,7 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
   const miniMapRef = useRef(null);
   const miniMapInstance = useRef(null);
   const { theme } = useTheme();
+  const [hasPhotoError, setHasPhotoError] = useState(false);
 
   const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
   const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -87,7 +82,14 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
   const statusColor = STATUS_COLORS[report.status] || '#64748b';
   const StatusIcon = STATUS_ICONS[report.status] || Clock;
   const trustColor = report.trustScore >= 70 ? '#10b981' : report.trustScore >= 40 ? '#f59e0b' : '#ef4444';
-  const photoUrl = report.photoUrl
+
+  const isValidPhoto = report.photoUrl &&
+    typeof report.photoUrl === 'string' &&
+    report.photoUrl.trim() !== '' &&
+    report.photoUrl !== 'null' &&
+    report.photoUrl !== 'undefined';
+
+  const photoUrl = isValidPhoto
     ? (report.photoUrl.startsWith('http') ? report.photoUrl : uploadAPI.getPhotoUrl(report.photoUrl))
     : null;
 
@@ -121,7 +123,7 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
               padding: '0.3rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700,
               background: `${color}22`, color,
             }}>
-              {TYPE_LABELS[report.incidentType] || report.incidentType}
+              {translateType(report.incidentType)}
             </div>
             <div style={{
               padding: '0.3rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600,
@@ -129,7 +131,7 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
               display: 'flex', alignItems: 'center', gap: '0.3rem'
             }}>
               <StatusIcon size={12} />
-              {STATUS_LABELS[report.status] || report.status}
+              {translateStatus(report.status)}
             </div>
           </div>
           <button
@@ -230,7 +232,7 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
           )}
 
           {/* Foto */}
-          {photoUrl && (
+          {photoUrl && !hasPhotoError && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                 <Camera size={14} style={{ color: 'var(--text-muted)' }} />
@@ -243,7 +245,7 @@ export default function ReportDetailModal({ report, onClose, onFlyTo }) {
                   width: '100%', borderRadius: '0.5rem', maxHeight: 200,
                   objectFit: 'cover', border: '1px solid var(--border-color)'
                 }}
-                onError={(e) => { e.target.style.display = 'none'; }}
+                onError={() => setHasPhotoError(true)}
               />
             </div>
           )}

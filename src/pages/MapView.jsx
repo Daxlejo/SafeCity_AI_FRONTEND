@@ -8,6 +8,7 @@ import { uploadAPI } from '../services/api';
 import { MapPin, Send, Crosshair, Plus, X, LogIn, Navigation, Camera, Flame } from 'lucide-react';
 import HeatmapLayer from '../components/HeatmapLayer';
 import DangerousZoneBanner from '../components/DangerousZoneBanner';
+import { translateType, translateStatus } from '../services/dictionary';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -89,7 +90,7 @@ export default function MapView({
   section, isAuthenticated, reportMode, setReportMode,
   selectedLocation, setSelectedLocation,
   reportDesc, setReportDesc, reportType, setReportType,
-  submitting, handleSubmitReport, cancelReportMode,
+  isSubmitting, handleSubmitReport, cancelReportMode,
   onReportClick,
   onLoginClick,
   onNewReport,
@@ -113,6 +114,95 @@ export default function MapView({
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
+
+  const [iaAnswers, setIaAnswers] = useState({});
+
+  useEffect(() => {
+    setIaAnswers({});
+  }, [reportType]);
+
+  const handleGenerateAIDesc = () => {
+    let text = '';
+    const typeLabel = translateType(reportType);
+
+    if (reportType === 'ACCIDENT') {
+      const heridos = iaAnswers.heridos || 'No';
+      const obst = iaAnswers.obstruccion || 'No';
+      const vehs = iaAnswers.vehiculos || '2';
+      text = `Se reporta un ${typeLabel.toLowerCase()} con ${vehs} vehículo(s) implicado(s). ${
+        heridos === 'Sí' ? 'Se confirma la presencia de heridos en la vía' : 'No se reportan personas heridas'
+      }. ${
+        obst === 'Sí' ? 'Hay obstrucción severa del tráfico' : 'El paso vehicular fluye con precaución'
+      }.`;
+    } else if (reportType === 'TRAFFIC') {
+      const bloqueo = iaAnswers.bloqueo || 'No';
+      const causa = iaAnswers.causa || 'Desconocido';
+      text = `Reporte de ${typeLabel.toLowerCase()} debido a ${
+        causa === 'Accidente' ? 'un accidente previo en la zona' :
+        causa === 'Obras en vía' ? 'obras viales activas' :
+        causa === 'Manifestación' ? 'manifestaciones ciudadanas' : 'causas desconocidas'
+      }. ${
+        bloqueo === 'Sí' ? 'La vía está completamente bloqueada' : 'Tránsito lento pero en movimiento'
+      }.`;
+    } else if (reportType === 'TRANSIT_OP') {
+      const policia = iaAnswers.policia || 'Sí';
+      const retencion = iaAnswers.retencion || 'No';
+      text = `Se observa una ${typeLabel.toLowerCase()}${
+        policia === 'Sí' ? ' coordinada por agentes de tránsito y policía' : ''
+      }. ${
+        retencion === 'Sí' ? 'Se están reteniendo vehículos para inspección' : 'Flujo normal de inspección preventiva'
+      }.`;
+    } else if (reportType === 'ROBBERY') {
+      const arma = iaAnswers.arma || 'No';
+      const afectados = iaAnswers.afectados || 'No';
+      const sospechosos = iaAnswers.sospechosos || '1';
+      text = `Incidente de ${typeLabel.toLowerCase()} reportado en la zona. Involucra a ${sospechosos} sospechoso(s). ${
+        arma === 'Sí' ? 'Cometido con arma visible' : 'Sin uso de armas aparentes'
+      }. ${
+        afectados === 'Sí' ? 'Se reportan afectados que requieren asistencia' : 'No hay personas heridas reportadas'
+      }.`;
+    } else {
+      const gravedad = iaAnswers.gravedad || 'Leve';
+      const policia_req = iaAnswers.policia_req || 'No';
+      text = `Reporte de incidente de tipo ${typeLabel.toLowerCase()} con gravedad ${gravedad.toLowerCase()}. ${
+        policia_req === 'Sí' ? 'Se solicita con urgencia presencia de la policía nacional' : 'Inspección de prevención normal'
+      }.`;
+    }
+
+    if (text.length < 30) {
+      text = `${text} Por favor, transitar con extrema precaución por la zona indicada.`;
+    }
+    if (text.length > 200) {
+      text = text.substring(0, 197) + '...';
+    }
+
+    setReportDesc(text);
+  };
+
+  const IA_QUESTIONS = {
+    ACCIDENT: [
+      { id: 'heridos', label: '¿Hay heridos en la vía?', options: ['Sí', 'No'] },
+      { id: 'obstruccion', label: '¿Hay obstrucción del tráfico?', options: ['Sí', 'No'] },
+      { id: 'vehiculos', label: 'Vehículos involucrados', options: ['1', '2', '3+'] }
+    ],
+    TRAFFIC: [
+      { id: 'bloqueo', label: '¿Bloqueo total de la vía?', options: ['Sí', 'No'] },
+      { id: 'causa', label: 'Causa aparente', options: ['Accidente', 'Obras en vía', 'Manifestación', 'Desconocido'] }
+    ],
+    TRANSIT_OP: [
+      { id: 'policia', label: '¿Es un operativo policial?', options: ['Sí', 'No'] },
+      { id: 'retencion', label: '¿Hay retención de vehículos?', options: ['Sí', 'No'] }
+    ],
+    ROBBERY: [
+      { id: 'arma', label: '¿Fue con arma o violencia?', options: ['Sí', 'No'] },
+      { id: 'afectados', label: '¿Hay heridos o afectados?', options: ['Sí', 'No'] },
+      { id: 'sospechosos', label: 'Sospechosos visibles', options: ['1', '2', '3+'] }
+    ],
+    OTHER: [
+      { id: 'gravedad', label: '¿Nivel de gravedad?', options: ['Leve', 'Moderado', 'Crítico'] },
+      { id: 'policia_req', label: '¿Requiere presencia policial?', options: ['Sí', 'No'] }
+    ]
+  };
 
   // ═══ Agente 4: Hook de datos para Heatmap y Zona Peligrosa ═══
   const { points: heatmapPoints, dangerousZone, loading: heatmapLoading } = useHeatmapData();
@@ -218,8 +308,8 @@ export default function MapView({
       }).bindPopup(`
         <div style="font-family:Inter,sans-serif;min-width:180px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;">${r.incidentType}</span>
-            <span style="background:${r.status === 'VERIFIED' ? '#10b98120' : '#f59e0b20'};color:${r.status === 'VERIFIED' ? '#10b981' : '#f59e0b'};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;">${r.status}</span>
+            <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;">${translateType(r.incidentType)}</span>
+            <span style="background:${r.status === 'VERIFIED' ? '#10b98120' : '#f59e0b20'};color:${r.status === 'VERIFIED' ? '#10b981' : '#f59e0b'};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;">${translateStatus(r.status)}</span>
           </div>
           <p style="font-size:12px;color:#94a3b8;margin:4px 0;">${r.description || 'Sin descripción'}</p>
           <div style="font-size:11px;margin-top:6px;"><span style="color:${trustColor};font-weight:600;">Confianza: ${trustPercent}%</span></div>
@@ -318,12 +408,99 @@ export default function MapView({
                 <div className="form-group">
                   <label>Tipo de incidente</label>
                   <select className="form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
-                    {INCIDENT_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
+                    {INCIDENT_TYPES.map((t) => (<option key={t.value} value={t.value}>{translateType(t.value)}</option>))}
                   </select>
                 </div>
+
+                {/* Asistente de IA - Preguntas Guía */}
+                {IA_QUESTIONS[reportType] && (
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px dashed var(--border-color)',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem'
+                  }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 600 }}>
+                      ✨ Asistente de IA: Guía de Incidentes
+                    </span>
+                    {IA_QUESTIONS[reportType].map((q) => (
+                      <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{q.label}</span>
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          {q.options.map((opt) => {
+                            const isSelected = iaAnswers[q.id] === opt;
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.7rem',
+                                  flex: 1,
+                                  background: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
+                                  border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'}`
+                                }}
+                                onClick={() => setIaAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{
+                        marginTop: '0.25rem',
+                        fontSize: '0.73rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        background: 'rgba(99,102,241,0.1)',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                        color: 'var(--accent)'
+                      }}
+                      onClick={handleGenerateAIDesc}
+                    >
+                      🪄 Generar Descripción con IA
+                    </button>
+                  </div>
+                )}
+
                 <div className="form-group">
-                  <label>Descripción</label>
-                  <textarea className="form-textarea" rows="3" required minLength={10} value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} placeholder="Describe el incidente (mín. 10 caracteres)..." />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <label style={{ margin: 0 }}>Descripción</label>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: (reportDesc.length < 30 || reportDesc.length > 200) ? 'var(--error)' : 'var(--success)'
+                    }}>
+                      {reportDesc.length} / 200
+                    </span>
+                  </div>
+                  <textarea
+                    className="form-textarea"
+                    rows="3"
+                    required
+                    minLength={30}
+                    maxLength={200}
+                    value={reportDesc}
+                    onChange={(e) => setReportDesc(e.target.value)}
+                    placeholder="Describe el incidente (mín. 30 caracteres)..."
+                  />
+                  {reportDesc.length > 0 && reportDesc.length < 30 && (
+                    <p style={{ fontSize: '0.68rem', color: 'var(--error)', marginTop: '0.2rem' }}>
+                      Faltan {30 - reportDesc.length} caracteres para el mínimo requerido.
+                    </p>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Ubicación</label>
@@ -386,9 +563,13 @@ export default function MapView({
                     {uploadingPhoto ? 'Subiendo...' : photoFile ? photoFile.name.substring(0, 20) + '...' : 'Seleccionar imagen'}
                   </label>
                 </div>
-                <button type="submit" className="btn btn-primary btn-full" disabled={!selectedLocation || submitting || uploadingPhoto}>
-                  {submitting ? <span className="spinner" /> : <Send size={16} />}
-                  {submitting ? 'Enviando...' : 'Enviar Reporte'}
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                  disabled={!selectedLocation || isSubmitting || uploadingPhoto || reportDesc.length < 30 || reportDesc.length > 200}
+                >
+                  {isSubmitting ? <span className="spinner" /> : <Send size={16} />}
+                  {isSubmitting ? 'Enviando...' : 'Enviar Reporte'}
                 </button>
               </form>
             </div>
@@ -426,8 +607,8 @@ export default function MapView({
                 style={{ cursor: 'pointer' }}
               >
                 <div className="report-card-header">
-                  <span className={`badge badge-${r.incidentType?.toLowerCase()}`}>{r.incidentType}</span>
-                  <span className={`badge badge-status badge-${r.status?.toLowerCase()}`}>{r.status}</span>
+                  <span className={`badge badge-${r.incidentType?.toLowerCase()}`}>{translateType(r.incidentType)}</span>
+                  <span className={`badge badge-status badge-${r.status?.toLowerCase()}`}>{translateStatus(r.status)}</span>
                 </div>
                 <div className="report-card-desc">{r.description}</div>
                 <div className="report-card-meta">

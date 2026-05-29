@@ -322,16 +322,17 @@ function AppContent() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [reportDesc, setReportDesc] = useState('');
   const [reportType, setReportType] = useState('ROBBERY');
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     reportsAPI.getAll()
       .then((res) => {
         const data = res.data?.content || res.data || [];
         setReports(Array.isArray(data) ? data : []);
       })
       .catch((err) => console.error('Error fetching reports:', err));
-  }, []);
+  }, [user]);
 
   useEffect(() => { if (user) setShowLogin(false); }, [user]);
 
@@ -378,6 +379,7 @@ function AppContent() {
 
   const handleSubmitReport = async (photoUrl, incidentDate) => {
     if (!selectedLocation) return;
+    setIsSubmitting(true);
 
     // Si el usuario tiene TrueScore < 55, mostrar modal de verificación primero
     const userTrust = user?.trustLevel ?? 50;
@@ -385,13 +387,12 @@ function AppContent() {
       // Guardar datos pendientes y abrir modal
       pendingSubmitRef.current = { photoUrl, incidentDate };
       setShowVerificationModal(true);
+      setIsSubmitting(false);
       return;
     }
 
     // Limpiar ref de pendiente
     pendingSubmitRef.current = null;
-
-    setSubmitting(true);
     try {
       const reportData = {
         description: reportDesc,
@@ -417,7 +418,7 @@ function AppContent() {
       alert(`Error al crear reporte: ${msg}`);
       console.error('Error creating report:', err.response?.data || err);
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -446,6 +447,20 @@ function AppContent() {
     );
   }
 
+  // AuthGuard — Block any internal views and redirect to /login if not authenticated
+  if (!user) {
+    const isResetView = window.location.pathname === '/reset-password';
+    if (!isResetView && window.location.pathname !== '/login') {
+      window.history.replaceState({}, '', '/login');
+    }
+    return (
+      <LoginPage
+        initialView={isResetView && resetToken ? 'reset' : 'login'}
+        initialToken={resetToken || undefined}
+      />
+    );
+  }
+
   const tabs = user ? [...AUTH_TABS, ...(isAdmin ? ADMIN_TABS : [])] : PUBLIC_TABS;
 
   // Props compartidos para MapView
@@ -457,7 +472,7 @@ function AppContent() {
     selectedLocation, setSelectedLocation,
     reportDesc, setReportDesc,
     reportType, setReportType,
-    submitting, handleSubmitReport, cancelReportMode,
+    isSubmitting, handleSubmitReport, cancelReportMode,
     onReportClick: setSelectedReport,
     onNewReport: handleNewReport,
     onLoginClick: () => setShowLogin(true),
